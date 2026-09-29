@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArtisanPro - Devis & Factures Cloisonnés pour Artisans</title>
+  <meta name="description" content="Solution autonome et sécurisée pour artisans indépendants pour gérer devis, factures et encaissements sans double saisie.">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- RemixIcons for modern UI icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body>
+
+  <!-- App Main Container -->
+  <div id="app">
+
+    <!-- Sidebar Navigation (Hidden when in Auth or Public mode) -->
+    <aside id="sidebar" class="sidebar" style="display: none;">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">⚡</div>
+          <div class="brand-text">
+            <h1>ArtisanPro</h1>
+            <p id="artisan-company">Électricité & BTP</p>
+          </div>
+        </div>
+
+        <ul class="nav-menu">
+          <li class="nav-item active" data-view="dashboard">
+            <button onclick="switchView('dashboard')">
+              <i class="ri-dashboard-3-line"></i> Tableau de bord
+            </button>
+          </li>
+          <li class="nav-item" data-view="devis">
+            <button onclick="switchView('devis')">
+              <i class="ri-file-text-line"></i> Devis
+            </button>
+          </li>
+          <li class="nav-item" data-view="factures">
+            <button onclick="switchView('factures')">
+              <i class="ri-file-list-3-line"></i> Factures
+            </button>
+          </li>
+          <li class="nav-item" data-view="clients">
+            <button onclick="switchView('clients')">
+              <i class="ri-user-user-line"></i> Clients
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="user-profile">
+        <div class="user-card">
+          <div id="user-avatar" class="user-avatar">AP</div>
+          <div class="user-info">
+            <h4 id="artisan-name">Jean Dupont</h4>
+            <p id="artisan-email">jean@elec.fr</p>
+          </div>
+          <button class="btn-logout" onclick="logout()" title="Déconnexion">
+            <i class="ri-logout-box-r-line"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-container" class="main-content" style="display: none;">
+
+      <!-- Header Bar -->
+      <div class="header-bar">
+        <div class="header-title">
+          <h2 id="view-title">Tableau de bord</h2>
+          <p id="view-subtitle">Vue d'ensemble de votre activité en temps réel</p>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn btn-outline" onclick="toggleTheme()" title="Basculer le thème">
+            <i class="ri-sun-line" id="theme-icon"></i>
+          </button>
+          <button class="btn btn-primary" onclick="openNewDevisModal()">
+            <i class="ri-add-line"></i> Nouveau Devis
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="view-section">
+        <!-- Period Selector -->
+        <div class="table-header-flex" style="margin-bottom: 20px;">
+          <h3>Période d'analyse</h3>
+          <select id="dashboard-period" class="form-control" style="width: 200px;" onchange="loadDashboard()">
+            <option value="this_month" selected>Ce mois-ci</option>
+            <option value="this_quarter">Ce trimestre</option>
+            <option value="this_year">Cette année</option>
+            <option value="all">Historique complet</option>
+          </select>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span>Total Facturé</span>
+              <div class="kpi-icon blue"><i class="ri-money-euro-box-line"></i></div>
+            </div>
+            <div id="kpi-facture" class="kpi-value">0,00 €</div>
+            <div class="kpi-subtitle">Factures émises + partiellement payées + payées</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span>Réellement Encaissé</span>
+              <div class="kpi-icon green"><i class="ri-checkbox-circle-line"></i></div>
+            </div>
+            <div id="kpi-encaisse" class="kpi-value">0,00 €</div>
+            <div class="kpi-subtitle">Total de tous les acomptes & paiements reçus</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span>Montant en Attente</span>
+              <div class="kpi-icon yellow"><i class="ri-time-line"></i></div>
+            </div>
+            <div id="kpi-attente" class="kpi-value">0,00 €</div>
+            <div class="kpi-subtitle">Soldes restants sur factures non réglées</div>
+          </div>
+        </div>
+
+        <!-- Recent Activity Feed -->
+        <div class="card">
+          <div class="table-header-flex">
+            <h3>Derniers Devis & Factures</h3>
+          </div>
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Client</th>
+                <th>Montant TTC</th>
+                <th>Statut</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-recent-table">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VIEW 2: DEVIS -->
+      <section id="view-devis" class="view-section" style="display: none;">
+        <div class="card">
+          <div class="table-header-flex">
+            <h3>Liste de vos Devis</h3>
+            <button class="btn btn-primary" onclick="openNewDevisModal()">
+              <i class="ri-add-line"></i> Créer un Devis
+            </button>
+          </div>
+
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>N° Devis</th>
+                <th>Version</th>
+                <th>Client</th>
+                <th>Total HT</th>
+                <th>Total TTC</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="devis-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VIEW 3: FACTURES -->
+      <section id="view-factures" class="view-section" style="display: none;">
+        <div class="card">
+          <div class="table-header-flex">
+            <h3>Liste de vos Factures</h3>
+            <span class="badge badge-sent"><i class="ri-lock-2-line"></i> Verrouillage définitif actif</span>
+          </div>
+
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>N° Facture</th>
+                <th>Devis d'origine</th>
+                <th>Client</th>
+                <th>Total TTC</th>
+                <th>Déjà Payé</th>
+                <th>Solde Restant</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="factures-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VIEW 4: CLIENTS -->
+      <section id="view-clients" class="view-section" style="display: none;">
+        <div class="card">
+          <div class="table-header-flex">
+            <h3>Fiches Clients</h3>
+            <button class="btn btn-primary" onclick="openClientModal()">
+              <i class="ri-user-add-line"></i> Nouveau Client
+            </button>
+          </div>
+
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Nom / Raison Sociale</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Adresse</th>
+                <th>Devis</th>
+                <th>Factures</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clients-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- AUTH CONTAINER (Displayed when not logged in) -->
+    <div id="auth-container" class="auth-wrapper">
+      <div class="auth-card">
+        <div class="brand" style="justify-content: center; margin-bottom: 24px; border: none;">
+          <div class="brand-icon">⚡</div>
+          <div class="brand-text">
+            <h1>ArtisanPro</h1>
+            <p>Gestion Devis & Factures</p>
+          </div>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchAuthTab('login')">Connexion</button>
+          <button class="auth-tab" onclick="switchAuthTab('register')">Créer un compte</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Adresse Email</label>
+            <input type="email" id="login-email" class="form-control" placeholder="artisan@exemple.fr" required>
+          </div>
+          <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+            <i class="ri-login-box-line"></i> Se connecter
+          </button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" onsubmit="handleRegister(event)" style="display: none;">
+          <div class="form-group">
+            <label>Nom de l'entreprise</label>
+            <input type="text" id="reg-company" class="form-control" placeholder="ELEC & CO EURL" required>
+          </div>
+          <div class="form-group">
+            <label>Nom de l'artisan</label>
+            <input type="text" id="reg-name" class="form-control" placeholder="Jean Dupont" required>
+          </div>
+          <div class="form-group">
+            <label>Adresse Email</label>
+            <input type="email" id="reg-email" class="form-control" placeholder="jean@elec.fr" required>
+          </div>
+          <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Téléphone</label>
+              <input type="text" id="reg-phone" class="form-control" placeholder="06 12 34 56 78">
+            </div>
+            <div class="form-group">
+              <label>N° SIRET</label>
+              <input type="text" id="reg-siret" class="form-control" placeholder="123 456 789 00012">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-accent" style="width: 100%; justify-content: center; padding: 12px;">
+            <i class="ri-user-add-line"></i> Créer mon compte
+          </button>
+        </form>
+
+        <!-- Quick Demo Login Button -->
+        <button class="quick-demo-btn" onclick="quickDemoLogin()">
+          ⚡ Tester l'application avec un compte démonstration instantané
+        </button>
+      </div>
+    </div>
+
+    <!-- PUBLIC VIEWING CONTAINER (Displayed when accessing /public/devis/:token or /public/factures/:token) -->
+    <div id="public-container" class="public-container" style="display: none;">
+      <div id="public-content">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL 1: Create / Edit Devis -->
+  <div id="devis-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="devis-modal-title">Créer un Devis</h3>
+        <button class="close-modal" onclick="closeModal('devis-modal')">&times;</button>
+      </div>
+
+      <form id="devis-form" onsubmit="saveDevis(event)">
+        <input type="hidden" id="devis-id">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client</label>
+            <select id="devis-client-id" class="form-control" required>
+              <!-- Filled dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Statut</label>
+            <select id="devis-statut" class="form-control">
+              <option value="brouillon">Brouillon</option>
+              <option value="envoye">Envoyé</option>
+              <option value="accepte">Accepté</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin: 20px 0 10px 0; display: flex; justify-content: space-between; align-items: center;">
+          <h4 style="font-size: 15px; font-weight: 700;">Lignes du devis</h4>
+          <button type="button" class="btn btn-outline btn-sm" onclick="addDevisLine()">
+            <i class="ri-add-line"></i> Ajouter une ligne
+          </button>
+        </div>
+
+        <table class="lines-table">
+          <thead>
+            <tr>
+              <th style="width: 45%;">Désignation</th>
+              <th style="width: 15%;">Qté</th>
+              <th style="width: 25%;">Prix Unitaire (€)</th>
+              <th style="width: 15%;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="devis-lines-body">
+            <!-- Dynamic lines -->
+          </tbody>
+        </table>
+
+        <div class="totals-summary">
+          <div class="totals-row">
+            <span>Total HT :</span>
+            <span id="modal-total-ht">0,00 €</span>
+          </div>
+          <div class="totals-row">
+            <span>TVA (20%) :</span>
+            <span id="modal-total-tva">0,00 €</span>
+          </div>
+          <div class="totals-row grand-total">
+            <span>Total TTC :</span>
+            <span id="modal-total-ttc">0,00 €</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('devis-modal')">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer le Devis</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Create / Edit Client -->
+  <div id="client-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="client-modal-title">Fiche Client</h3>
+        <button class="close-modal" onclick="closeModal('client-modal')">&times;</button>
+      </div>
+
+      <form id="client-form" onsubmit="saveClient(event)">
+        <input type="hidden" id="client-id">
+        <div class="form-group">
+          <label>Nom ou Raison Sociale *</label>
+          <input type="text" id="client-nom" class="form-control" placeholder="M. Paul Valéry" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="client-email" class="form-control" placeholder="client@domaine.com">
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="text" id="client-phone" class="form-control" placeholder="06 98 76 54 32">
+        </div>
+        <div class="form-group">
+          <label>Adresse complète</label>
+          <textarea id="client-adresse" class="form-control" rows="3" placeholder="12 Rue des Artisans, 75001 Paris"></textarea>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('client-modal')">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer Client</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Payment / Acompte Registration -->
+  <div id="payment-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Enregistrer un Paiement</h3>
+        <button class="close-modal" onclick="closeModal('payment-modal')">&times;</button>
+      </div>
+
+      <form id="payment-form" onsubmit="savePayment(event)">
+        <input type="hidden" id="payment-facture-id">
+
+        <div style="background: rgba(2, 132, 199, 0.1); padding: 14px; border-radius: 8px; margin-bottom: 20px;">
+          <div style="font-size: 12px; color: var(--text-muted);">Facture : <strong id="payment-facture-num">FACT-XXXX</strong></div>
+          <div style="font-size: 14px; margin-top: 4px;">Solde restant à payer : <strong id="payment-facture-solde" style="color: var(--danger);">0,00 €</strong></div>
+        </div>
+
+        <div class="form-group">
+          <label>Montant du règlement en Euros (€) *</label>
+          <input type="number" step="0.01" id="payment-amount" class="form-control" placeholder="150.00" required>
+        </div>
+
+        <div class="form-group">
+          <label>Mode de règlement</label>
+          <select id="payment-mode" class="form-control">
+            <option value="virement" selected>Virement bancaire</option>
+            <option value="carte">Carte bancaire</option>
+            <option value="cheque">Chèque</option>
+            <option value="especes">Espèces</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Notes / Référence</label>
+          <input type="text" id="payment-notes" class="form-control" placeholder="Acompte 30% / Virement N°123">
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('payment-modal')">Annuler</button>
+          <button type="submit" class="btn btn-accent">Confirmer le paiement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Share Public Link Modal -->
+  <div id="share-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Lien Public de Consultation Client</h3>
+        <button class="close-modal" onclick="closeModal('share-modal')">&times;</button>
+      </div>
+
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        Ce lien donne un accès <strong>strictement en lecture seule</strong> à votre client, sans authentification requise. Aucune action d'écriture n'y est possible.
+      </p>
+
+      <div class="form-group">
+        <label>Lien Public</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="share-link-input" class="form-control" readonly>
+          <button class="btn btn-primary" onclick="copyShareLink()">Copier</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+        <button class="btn btn-outline" onclick="closeModal('share-modal')">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Script -->
+  <script src="/app.js"></script>
+</body>
+</html>
