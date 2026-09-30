@@ -86,7 +86,16 @@ function generateDevisPDF(rawDevis, rawClient, rawArtisan, rawLines, res) {
   const artisan = rawArtisan || {};
   const lines = Array.isArray(rawLines) ? rawLines : [];
 
-  const doc = new PDFDocument({ margin: 50, size: 'A4' });
+  let doc;
+  try {
+    doc = new PDFDocument({ margin: 50, size: 'A4' });
+  } catch (initErr) {
+    console.error('[PDF] PDFDocument init failed:', initErr.stack || initErr.message);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: initErr.message });
+    }
+    return;
+  }
   const filename = `Devis_${safe(devis.numero, 'DEV')}_v${safe(devis.version, '1')}.pdf`;
 
   sendPDF(doc, filename, res, (doc) => {
@@ -204,7 +213,16 @@ function generateFacturePDF(rawFacture, rawClient, rawArtisan, rawLines, rawPaie
   const lines = Array.isArray(rawLines) ? rawLines : [];
   const paiements = Array.isArray(rawPaiements) ? rawPaiements : [];
 
-  const doc = new PDFDocument({ margin: 50, size: 'A4' });
+  let doc;
+  try {
+    doc = new PDFDocument({ margin: 50, size: 'A4' });
+  } catch (initErr) {
+    console.error('[PDF] PDFDocument init failed (facture):', initErr.stack || initErr.message);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: initErr.message });
+    }
+    return;
+  }
   const filename = `Facture_${safe(facture.numero, 'FAC')}.pdf`;
 
   sendPDF(doc, filename, res, (doc) => {

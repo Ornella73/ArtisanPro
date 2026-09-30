@@ -6,7 +6,10 @@
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
+          "node_modules/pdfkit/js/**",
           "node_modules/pdfkit/js/data/**",
+          "node_modules/pdfkit/js/standard-fonts/**",
+          "node_modules/pdfkit/js/standard-fonts/chunks/**",
           "data/**"
         ]
       }
