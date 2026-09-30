@@ -2,7 +2,10 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const dataDir = path.join(__dirname, '..', 'data');
+const dataDir = process.env.VERCEL 
+  ? path.join('/tmp', 'data')
+  : path.join(__dirname, '..', 'data');
+
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -10,8 +13,12 @@ if (!fs.existsSync(dataDir)) {
 const dbPath = process.env.DATABASE_PATH || path.join(dataDir, 'artisanpro.db');
 const db = new Database(dbPath);
 
-// Enable WAL mode & foreign keys
-db.pragma('journal_mode = WAL');
+// Enable WAL mode & foreign keys (fallback to DELETE journal mode if WAL fails on serverless filesystem)
+try {
+  db.pragma('journal_mode = WAL');
+} catch (_) {
+  db.pragma('journal_mode = DELETE');
+}
 db.pragma('foreign_keys = ON');
 
 function initSchema() {

@@ -138,7 +138,13 @@ router.post('/:id/paiements', (req, res) => {
       });
     }
 
-    const dateToUse = date_paiement ? new Date(date_paiement).toISOString() : new Date().toISOString();
+    let dateToUse = new Date().toISOString();
+    if (date_paiement) {
+      const parsedDate = new Date(date_paiement);
+      if (!isNaN(parsedDate.getTime())) {
+        dateToUse = parsedDate.toISOString();
+      }
+    }
 
     const newPaymentId = db.transaction(() => {
       // 1. Insert payment

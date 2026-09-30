@@ -2,9 +2,13 @@
  * ArtiFlow / ArtisanPro Client Application Script
  */
 
+function safeJSONParse(str) {
+  try { return str ? JSON.parse(str) : null; } catch (_) { return null; }
+}
+
 let state = {
   token: localStorage.getItem('artiflow_token') || null,
-  artisan: JSON.parse(localStorage.getItem('artiflow_user')) || null,
+  artisan: safeJSONParse(localStorage.getItem('artiflow_user')),
   currentView: 'dashboard',
   clients: [],
   devis: [],
@@ -213,7 +217,7 @@ function switchView(viewName) {
   document.querySelectorAll('.view-section').forEach(s => s.style.display = 'none');
   document.getElementById(`view-${viewName}`).style.display = 'block';
 
-  const name = state.artisan ? state.artisan.nom_artisan.split(' ')[0] : 'Amine';
+  const name = (state.artisan && state.artisan.nom_artisan) ? state.artisan.nom_artisan.split(' ')[0] : 'Artisan';
   const headings = {
     dashboard: { title: `Bonjour, ${name} 👋`, sub: 'Voici un aperçu de votre activité.' },
     devis: { title: 'Vos Devis', sub: 'Gestion, envoi et suivi de vos devis' },

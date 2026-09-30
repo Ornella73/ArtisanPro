@@ -9,12 +9,20 @@ router.post('/register', (req, res) => {
   try {
     const { email, password, nom_entreprise, nom_artisan, telephone, siret, adresse } = req.body;
 
-    if (!email || !password || !nom_entreprise || !nom_artisan) {
-      return res.status(400).json({ error: 'Champs obligatoires manquants (email, password, nom_entreprise, nom_artisan).' });
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || !nom_entreprise || typeof nom_entreprise !== 'string' || !nom_artisan || typeof nom_artisan !== 'string') {
+      return res.status(400).json({ error: 'Champs obligatoires manquants ou invalides (email, password, nom_entreprise, nom_artisan).' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanCompany = nom_entreprise.trim();
+    const cleanArtisan = nom_artisan.trim();
+
+    if (!cleanEmail || !cleanCompany || !cleanArtisan) {
+      return res.status(400).json({ error: 'Les champs obligatoires ne peuvent pas être vides.' });
     }
 
     // Check existing
-    const existing = db.prepare('SELECT id FROM artisans WHERE email = ?').get(email.toLowerCase().trim());
+    const existing = db.prepare('SELECT id FROM artisans WHERE email = ?').get(cleanEmail);
     if (existing) {
       return res.status(400).json({ error: 'Un compte existe déjà avec cette adresse email.' });
     }
@@ -27,13 +35,13 @@ router.post('/register', (req, res) => {
     `);
 
     const result = stmt.run(
-      email.toLowerCase().trim(),
+      cleanEmail,
       password_hash,
-      nom_entreprise.trim(),
-      nom_artisan.trim(),
-      telephone ? telephone.trim() : null,
-      siret ? siret.trim() : null,
-      adresse ? adresse.trim() : null
+      cleanCompany,
+      cleanArtisan,
+      typeof telephone === 'string' && telephone.trim() ? telephone.trim() : null,
+      typeof siret === 'string' && siret.trim() ? siret.trim() : null,
+      typeof adresse === 'string' && adresse.trim() ? adresse.trim() : null
     );
 
     const artisan = db.prepare('SELECT id, email, nom_entreprise, nom_artisan, telephone, siret, adresse FROM artisans WHERE id = ?').get(result.lastInsertRowid);
@@ -55,11 +63,12 @@ router.post('/login', (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
       return res.status(400).json({ error: 'Veuillez saisir votre email et votre mot de passe.' });
     }
 
-    const artisan = db.prepare('SELECT * FROM artisans WHERE email = ?').get(email.toLowerCase().trim());
+    const cleanEmail = email.toLowerCase().trim();
+    const artisan = db.prepare('SELECT * FROM artisans WHERE email = ?').get(cleanEmail);
     if (!artisan || !bcrypt.compareSync(password, artisan.password_hash)) {
       return res.status(401).json({ error: 'Identifiants incorrects.' });
     }

@@ -46,7 +46,7 @@ router.post('/', (req, res) => {
   try {
     const { nom, email, telephone, adresse } = req.body;
 
-    if (!nom || !nom.trim()) {
+    if (!nom || typeof nom !== 'string' || !nom.trim()) {
       return res.status(400).json({ error: 'Le nom du client est obligatoire.' });
     }
 
@@ -58,9 +58,9 @@ router.post('/', (req, res) => {
     const result = stmt.run(
       req.artisan.id,
       nom.trim(),
-      email ? email.trim() : null,
-      telephone ? telephone.trim() : null,
-      adresse ? adresse.trim() : null
+      typeof email === 'string' && email.trim() ? email.trim() : null,
+      typeof telephone === 'string' && telephone.trim() ? telephone.trim() : null,
+      typeof adresse === 'string' && adresse.trim() ? adresse.trim() : null
     );
 
     const newClient = db.prepare('SELECT * FROM clients WHERE id = ?').get(result.lastInsertRowid);
@@ -76,7 +76,7 @@ router.put('/:id', (req, res) => {
   try {
     const { nom, email, telephone, adresse } = req.body;
 
-    if (!nom || !nom.trim()) {
+    if (!nom || typeof nom !== 'string' || !nom.trim()) {
       return res.status(400).json({ error: 'Le nom du client est obligatoire.' });
     }
 
@@ -91,9 +91,9 @@ router.put('/:id', (req, res) => {
       WHERE id = ? AND artisan_id = ?
     `).run(
       nom.trim(),
-      email ? email.trim() : null,
-      telephone ? telephone.trim() : null,
-      adresse ? adresse.trim() : null,
+      typeof email === 'string' && email.trim() ? email.trim() : null,
+      typeof telephone === 'string' && telephone.trim() ? telephone.trim() : null,
+      typeof adresse === 'string' && adresse.trim() ? adresse.trim() : null,
       req.params.id,
       req.artisan.id
     );

@@ -33,8 +33,12 @@ router.get('/stats', (req, res) => {
       startDateISO = start.toISOString();
       endDateISO = end.toISOString();
     } else if (period === 'custom' && start_date && end_date) {
-      startDateISO = new Date(start_date).toISOString();
-      endDateISO = new Date(end_date + 'T23:59:59').toISOString();
+      const dStart = new Date(start_date);
+      const dEnd = new Date(String(end_date).includes('T') ? end_date : end_date + 'T23:59:59');
+      if (!isNaN(dStart.getTime()) && !isNaN(dEnd.getTime())) {
+        startDateISO = dStart.toISOString();
+        endDateISO = dEnd.toISOString();
+      }
     }
 
     // 1. Montant total facturé (Factures émises, partiellement payées, ou payées, hors annulées)
