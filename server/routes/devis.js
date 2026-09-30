@@ -204,8 +204,10 @@ router.put('/:id', (req, res) => {
     // Single source of truth calculation
     const computed = calculateDocumentTotals(lignes);
 
-    // Check if devis has been sent/accepted (public link active) -> Create NEW VERSION
-    if (existingDevis.statut === 'envoye' || existingDevis.statut === 'accepte') {
+    // Create a NEW VERSION only when devis has been sent to the client (statut = 'envoye') and the content changes.
+    // An 'accepte' devis that is edited is updated in-place — the client already agreed to the current version.
+    // Status changes (brouillon -> accepte) go through PATCH /statut and never reach here.
+    if (existingDevis.statut === 'envoye') {
       const newVersionNum = existingDevis.version + 1;
       const newPublicToken = crypto.randomUUID();
       const parentId = existingDevis.parent_devis_id || existingDevis.id;

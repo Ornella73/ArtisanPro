@@ -62,7 +62,7 @@ function formatCentsToEuros(cents) {
     style: 'currency',
     currency: 'EUR'
   }).format(amount);
-  return formatted.replace(/\u202f/g, '\u00a0');
+  return formatted.replace(/[\u202f\u00a0]/g, ' ');
 }
 
 module.exports = {
