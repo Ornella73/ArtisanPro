@@ -102,13 +102,35 @@ router.get('/devis/:token/pdf', (req, res) => {
     }
 
     const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(devis.client_id);
-    const artisan = db.prepare('SELECT * FROM artisans WHERE id = ?').get(devis.artisan_id);
+    const artisanRaw = db.prepare('SELECT id, email, nom_entreprise, nom_artisan, telephone, siret, adresse FROM artisans WHERE id = ?').get(devis.artisan_id);
     const lignes = db.prepare('SELECT * FROM devis_lignes WHERE devis_id = ? ORDER BY id ASC').all(devis.id);
 
-    generateDevisPDF(devis, client, artisan, lignes, res);
+    if (!client || !artisanRaw) {
+      return res.status(404).json({ error: 'Données du devis incomplètes.' });
+    }
+
+    // Sanitize — ensure no null crashes in PDFKit
+    const artisan = {
+      nom_entreprise: artisanRaw.nom_entreprise || 'Artisan',
+      nom_artisan: artisanRaw.nom_artisan || '',
+      email: artisanRaw.email || '',
+      telephone: artisanRaw.telephone || '',
+      siret: artisanRaw.siret || '',
+      adresse: artisanRaw.adresse || ''
+    };
+    const safeClient = {
+      nom: client.nom || '',
+      email: client.email || '',
+      telephone: client.telephone || '',
+      adresse: client.adresse || ''
+    };
+
+    generateDevisPDF(devis, safeClient, artisan, lignes, res);
   } catch (err) {
     console.error('Public devis PDF error:', err);
-    res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    }
   }
 });
 
@@ -183,14 +205,36 @@ router.get('/factures/:token/pdf', (req, res) => {
     }
 
     const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(facture.client_id);
-    const artisan = db.prepare('SELECT * FROM artisans WHERE id = ?').get(facture.artisan_id);
+    const artisanRaw = db.prepare('SELECT id, email, nom_entreprise, nom_artisan, telephone, siret, adresse FROM artisans WHERE id = ?').get(facture.artisan_id);
     const lignes = db.prepare('SELECT * FROM facture_lignes WHERE facture_id = ? ORDER BY id ASC').all(facture.id);
     const paiements = db.prepare('SELECT * FROM paiements WHERE facture_id = ? ORDER BY date_paiement ASC').all(facture.id);
 
-    generateFacturePDF(facture, client, artisan, lignes, paiements, res);
+    if (!client || !artisanRaw) {
+      return res.status(404).json({ error: 'Données de la facture incomplètes.' });
+    }
+
+    // Sanitize — ensure no null crashes in PDFKit
+    const artisan = {
+      nom_entreprise: artisanRaw.nom_entreprise || 'Artisan',
+      nom_artisan: artisanRaw.nom_artisan || '',
+      email: artisanRaw.email || '',
+      telephone: artisanRaw.telephone || '',
+      siret: artisanRaw.siret || '',
+      adresse: artisanRaw.adresse || ''
+    };
+    const safeClient = {
+      nom: client.nom || '',
+      email: client.email || '',
+      telephone: client.telephone || '',
+      adresse: client.adresse || ''
+    };
+
+    generateFacturePDF(facture, safeClient, artisan, lignes, paiements, res);
   } catch (err) {
     console.error('Public facture PDF error:', err);
-    res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    }
   }
 });
 
