@@ -47,7 +47,7 @@ function sendPDF(doc, filename, res, buildFn) {
     } catch (err) {
       console.error('PDF stream flush error:', err);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+        res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: err.message });
       }
     }
   });
@@ -58,7 +58,7 @@ function sendPDF(doc, filename, res, buildFn) {
     doc.removeAllListeners('data');
     doc.removeAllListeners('end');
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: err.message });
     }
   });
 
@@ -71,7 +71,7 @@ function sendPDF(doc, filename, res, buildFn) {
     doc.removeAllListeners('data');
     doc.removeAllListeners('end');
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: err.message });
     }
   }
 }
