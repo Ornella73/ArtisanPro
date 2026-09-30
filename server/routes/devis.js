@@ -360,6 +360,27 @@ router.patch('/:id/statut', (req, res) => {
   }
 });
 
+// POST /api/devis/:id/share - Trigger status to 'envoye' as soon as link is shared
+router.post('/:id/share', (req, res) => {
+  try {
+    const devis = db.prepare('SELECT * FROM devis WHERE id = ? AND artisan_id = ?').get(req.params.id, req.artisan.id);
+    if (!devis) {
+      return res.status(404).json({ error: 'Devis introuvable ou accès refusé.' });
+    }
+
+    if (devis.statut === 'brouillon') {
+      db.prepare(`UPDATE devis SET statut = 'envoye', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(devis.id);
+      return res.json({ message: 'Lien partagé, statut passé à envoyé.', statut: 'envoye' });
+    }
+
+    res.json({ message: 'Lien partagé.', statut: devis.statut });
+  } catch (err) {
+    console.error('Share devis error:', err);
+    res.status(500).json({ error: 'Erreur lors du partage.' });
+  }
+});
+
+
 // POST /api/devis/:id/convert - Convert accepted devis into invoice
 router.post('/:id/convert', (req, res) => {
   try {

@@ -32,6 +32,12 @@ router.get('/devis/:token', (req, res) => {
       return res.status(404).json({ error: 'Devis introuvable ou lien public expiré.' });
     }
 
+    // Automatically transition draft devis to 'envoye' once public link is accessed
+    if (devis.statut === 'brouillon') {
+      db.prepare(`UPDATE devis SET statut = 'envoye', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(devis.id);
+      devis.statut = 'envoye';
+    }
+
     const lignes = db.prepare('SELECT * FROM devis_lignes WHERE devis_id = ? ORDER BY id ASC').all(devis.id);
 
     // If this devis was replaced by a newer version, find the latest version info

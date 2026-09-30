@@ -1,94 +1,111 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ArtisanPro - Devis & Factures Cloisonnés pour Artisans</title>
-  <meta name="description" content="Solution autonome et sécurisée pour artisans indépendants pour gérer devis, factures et encaissements sans double saisie.">
+  <title>ArtiFlow - Vos devis et factures en toute simplicité</title>
+  <meta name="description" content="Application web pour artisans indépendants (ex. électricien). Gérant devis, factures sans double saisie et suivi des encaissements en temps réel.">
   <link rel="stylesheet" href="/styles.css">
-  <!-- RemixIcons for modern UI icons -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 <body>
 
-  <!-- App Main Container -->
   <div id="app">
 
-    <!-- Sidebar Navigation (Hidden when in Auth or Public mode) -->
+    <!-- DESKTOP SIDEBAR (Matches Maquette 1 & 2) -->
     <aside id="sidebar" class="sidebar" style="display: none;">
       <div>
-        <div class="brand">
-          <div class="brand-icon">⚡</div>
-          <div class="brand-text">
-            <h1>ArtisanPro</h1>
-            <p id="artisan-company">Électricité & BTP</p>
+        <div class="brand-header">
+          <img src="/logo.jpg" alt="ArtiFlow Logo" class="brand-logo-img">
+          <div>
+            <div class="brand-title">Arti<span>Flow</span></div>
+            <div class="brand-subtitle">Devis & Factures</div>
           </div>
         </div>
 
-        <ul class="nav-menu">
-          <li class="nav-item active" data-view="dashboard">
-            <button onclick="switchView('dashboard')">
-              <i class="ri-dashboard-3-line"></i> Tableau de bord
+        <ul class="nav-list">
+          <li class="nav-item">
+            <button class="nav-link active" data-view="dashboard" onclick="switchView('dashboard')">
+              <i class="ri-home-5-line"></i> Tableau de bord
             </button>
           </li>
-          <li class="nav-item" data-view="devis">
-            <button onclick="switchView('devis')">
+          <li class="nav-item">
+            <button class="nav-link" data-view="devis" onclick="switchView('devis')">
               <i class="ri-file-text-line"></i> Devis
             </button>
           </li>
-          <li class="nav-item" data-view="factures">
-            <button onclick="switchView('factures')">
+          <li class="nav-item">
+            <button class="nav-link" data-view="factures" onclick="switchView('factures')">
               <i class="ri-file-list-3-line"></i> Factures
             </button>
           </li>
-          <li class="nav-item" data-view="clients">
-            <button onclick="switchView('clients')">
-              <i class="ri-user-user-line"></i> Clients
+          <li class="nav-item">
+            <button class="nav-link" data-view="clients" onclick="switchView('clients')">
+              <i class="ri-user-3-line"></i> Clients
             </button>
           </li>
         </ul>
       </div>
 
-      <div class="user-profile">
-        <div class="user-card">
-          <div id="user-avatar" class="user-avatar">AP</div>
-          <div class="user-info">
-            <h4 id="artisan-name">Jean Dupont</h4>
-            <p id="artisan-email">jean@elec.fr</p>
+      <div class="sidebar-user">
+        <div class="user-info-box">
+          <div id="user-avatar" class="avatar-circle">AF</div>
+          <div style="overflow: hidden;">
+            <div id="artisan-company" style="font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Électricité & Co</div>
+            <div id="artisan-name" style="font-size: 11px; color: rgba(255,255,255,0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Artisan</div>
           </div>
-          <button class="btn-logout" onclick="logout()" title="Déconnexion">
-            <i class="ri-logout-box-r-line"></i>
-          </button>
         </div>
+        <button class="btn-logout" onclick="logout()" title="Déconnexion">
+          <i class="ri-logout-box-r-line"></i>
+        </button>
       </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <main id="main-container" class="main-content" style="display: none;">
+    <!-- MOBILE BOTTOM NAVIGATION (Matches Mobile Screenshots in Maquette 1 & 2) -->
+    <nav id="bottom-nav" class="bottom-nav" style="display: none;">
+      <button class="bottom-nav-btn active" data-view="dashboard" onclick="switchView('dashboard')">
+        <i class="ri-home-5-line"></i>
+        <span>Accueil</span>
+      </button>
+      <button class="bottom-nav-btn" data-view="devis" onclick="switchView('devis')">
+        <i class="ri-file-text-line"></i>
+        <span>Devis</span>
+      </button>
+      <button class="bottom-nav-btn" data-view="factures" onclick="switchView('factures')">
+        <i class="ri-file-list-3-line"></i>
+        <span>Factures</span>
+      </button>
+      <button class="bottom-nav-btn" data-view="clients" onclick="switchView('clients')">
+        <i class="ri-user-3-line"></i>
+        <span>Clients</span>
+      </button>
+    </nav>
 
-      <!-- Header Bar -->
-      <div class="header-bar">
-        <div class="header-title">
-          <h2 id="view-title">Tableau de bord</h2>
-          <p id="view-subtitle">Vue d'ensemble de votre activité en temps réel</p>
+    <!-- MAIN APP WRAPPER -->
+    <main id="main-container" class="main-wrapper" style="display: none;">
+
+      <!-- TOP HEADER BAR -->
+      <div class="top-header">
+        <div class="greeting-text">
+          <h2 id="view-greeting">Bonjour, Amine 👋</h2>
+          <p id="view-subtext">Voici un aperçu de votre activité.</p>
         </div>
 
-        <div class="header-actions">
-          <button class="btn btn-outline" onclick="toggleTheme()" title="Basculer le thème">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button class="btn btn-outline" onclick="toggleTheme()" title="Basculer le thème (Clair/Sombre)">
             <i class="ri-sun-line" id="theme-icon"></i>
           </button>
-          <button class="btn btn-primary" onclick="openNewDevisModal()">
-            <i class="ri-add-line"></i> Nouveau Devis
+          <button class="btn btn-terracotta" onclick="openNewDevisModal()">
+            <i class="ri-add-line"></i> Nouveau devis
           </button>
         </div>
       </div>
 
-      <!-- VIEW 1: DASHBOARD -->
+      <!-- VIEW 1: DASHBOARD (Matches Maquette 1 & 2 Home Screen) -->
       <section id="view-dashboard" class="view-section">
-        <!-- Period Selector -->
-        <div class="table-header-flex" style="margin-bottom: 20px;">
-          <h3>Période d'analyse</h3>
-          <select id="dashboard-period" class="form-control" style="width: 200px;" onchange="loadDashboard()">
+        <!-- Period Filter Dropdown -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+          <select id="dashboard-period" class="form-input" style="width: 180px; font-weight: 700;" onchange="loadDashboard()">
             <option value="this_month" selected>Ce mois-ci</option>
             <option value="this_quarter">Ce trimestre</option>
             <option value="this_year">Cette année</option>
@@ -96,41 +113,54 @@
           </select>
         </div>
 
-        <!-- KPI Cards -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span>Total Facturé</span>
-              <div class="kpi-icon blue"><i class="ri-money-euro-box-line"></i></div>
-            </div>
-            <div id="kpi-facture" class="kpi-value">0,00 €</div>
-            <div class="kpi-subtitle">Factures émises + partiellement payées + payées</div>
+        <!-- 3 KPI Cards -->
+        <div class="kpi-row">
+          <div class="kpi-card-box">
+            <div class="kpi-title">Facturé</div>
+            <div id="kpi-facture" class="kpi-amount factured">0,00 €</div>
+            <div class="kpi-badge-trend orange"><i class="ri-arrow-up-line"></i> Total facturé</div>
           </div>
 
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span>Réellement Encaissé</span>
-              <div class="kpi-icon green"><i class="ri-checkbox-circle-line"></i></div>
-            </div>
-            <div id="kpi-encaisse" class="kpi-value">0,00 €</div>
-            <div class="kpi-subtitle">Total de tous les acomptes & paiements reçus</div>
+          <div class="kpi-card-box">
+            <div class="kpi-title">Encaissements</div>
+            <div id="kpi-encaisse" class="kpi-amount encaisse">0,00 €</div>
+            <div class="kpi-badge-trend green"><i class="ri-arrow-up-line"></i> Réellement encaissé</div>
           </div>
 
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span>Montant en Attente</span>
-              <div class="kpi-icon yellow"><i class="ri-time-line"></i></div>
-            </div>
-            <div id="kpi-attente" class="kpi-value">0,00 €</div>
-            <div class="kpi-subtitle">Soldes restants sur factures non réglées</div>
+          <div class="kpi-card-box">
+            <div class="kpi-title">En attente</div>
+            <div id="kpi-attente" class="kpi-amount attente">0,00 €</div>
+            <div class="kpi-badge-trend orange"><i class="ri-time-line"></i> Soldes en cours</div>
           </div>
         </div>
 
-        <!-- Recent Activity Feed -->
-        <div class="card">
-          <div class="table-header-flex">
-            <h3>Derniers Devis & Factures</h3>
+        <!-- Quick Action Buttons Grid -->
+        <div class="actions-grid">
+          <div class="action-card-btn" onclick="openNewDevisModal()">
+            <div class="action-icon-circle"><i class="ri-file-add-line"></i></div>
+            <span>Nouveau devis</span>
           </div>
+          <div class="action-card-btn" onclick="openClientModal()">
+            <div class="action-icon-circle"><i class="ri-user-add-line"></i></div>
+            <span>Nouveau client</span>
+          </div>
+          <div class="action-card-btn" onclick="switchView('clients')">
+            <div class="action-icon-circle"><i class="ri-group-line"></i></div>
+            <span>Mes clients</span>
+          </div>
+          <div class="action-card-btn" onclick="switchView('factures')">
+            <div class="action-icon-circle"><i class="ri-file-list-3-line"></i></div>
+            <span>Mes factures</span>
+          </div>
+        </div>
+
+        <!-- Recent Documents Table -->
+        <div class="content-card">
+          <div class="card-header-row">
+            <h3>Mes derniers documents</h3>
+            <button class="btn btn-outline btn-sm" onclick="switchView('devis')">Voir tout</button>
+          </div>
+
           <table class="custom-table">
             <thead>
               <tr>
@@ -150,11 +180,11 @@
 
       <!-- VIEW 2: DEVIS -->
       <section id="view-devis" class="view-section" style="display: none;">
-        <div class="card">
-          <div class="table-header-flex">
-            <h3>Liste de vos Devis</h3>
-            <button class="btn btn-primary" onclick="openNewDevisModal()">
-              <i class="ri-add-line"></i> Créer un Devis
+        <div class="content-card">
+          <div class="card-header-row">
+            <h3>Liste de vos devis</h3>
+            <button class="btn btn-terracotta" onclick="openNewDevisModal()">
+              <i class="ri-add-line"></i> Créer un devis
             </button>
           </div>
 
@@ -179,10 +209,10 @@
 
       <!-- VIEW 3: FACTURES -->
       <section id="view-factures" class="view-section" style="display: none;">
-        <div class="card">
-          <div class="table-header-flex">
-            <h3>Liste de vos Factures</h3>
-            <span class="badge badge-sent"><i class="ri-lock-2-line"></i> Verrouillage définitif actif</span>
+        <div class="content-card">
+          <div class="card-header-row">
+            <h3>Liste de vos factures</h3>
+            <span class="status-badge envoye"><i class="ri-lock-2-line"></i> Verrouillage définitif actif</span>
           </div>
 
           <table class="custom-table">
@@ -192,8 +222,8 @@
                 <th>Devis d'origine</th>
                 <th>Client</th>
                 <th>Total TTC</th>
-                <th>Déjà Payé</th>
-                <th>Solde Restant</th>
+                <th>Paiements reçus</th>
+                <th>Solde restant</th>
                 <th>Statut</th>
                 <th>Actions</th>
               </tr>
@@ -207,18 +237,23 @@
 
       <!-- VIEW 4: CLIENTS -->
       <section id="view-clients" class="view-section" style="display: none;">
-        <div class="card">
-          <div class="table-header-flex">
-            <h3>Fiches Clients</h3>
-            <button class="btn btn-primary" onclick="openClientModal()">
-              <i class="ri-user-add-line"></i> Nouveau Client
+        <div class="content-card">
+          <div class="card-header-row">
+            <h3>Fiches clients</h3>
+            <button class="btn btn-terracotta" onclick="openClientModal()">
+              <i class="ri-user-add-line"></i> Nouveau client
             </button>
+          </div>
+
+          <!-- Search Filter Bar -->
+          <div style="margin-bottom: 20px;">
+            <input type="text" id="client-search-input" class="form-input" placeholder="🔍 Rechercher un client par nom..." oninput="filterClientsList()">
           </div>
 
           <table class="custom-table">
             <thead>
               <tr>
-                <th>Nom / Raison Sociale</th>
+                <th>Nom / Raison sociale</th>
                 <th>Email</th>
                 <th>Téléphone</th>
                 <th>Adresse</th>
@@ -236,79 +271,80 @@
 
     </main>
 
-    <!-- AUTH CONTAINER (Displayed when not logged in) -->
-    <div id="auth-container" class="auth-wrapper">
-      <div class="auth-card">
-        <div class="brand" style="justify-content: center; margin-bottom: 24px; border: none;">
-          <div class="brand-icon">⚡</div>
-          <div class="brand-text">
-            <h1>ArtisanPro</h1>
-            <p>Gestion Devis & Factures</p>
+    <!-- ONBOARDING & AUTH LANDING CONTAINER (Matches Maquette 1 & 2 Auth Screens) -->
+    <div id="auth-container" class="auth-landing-wrapper">
+      <div class="auth-landing-card">
+        <div class="auth-brand-logo">
+          <img src="/logo.jpg" alt="ArtiFlow Logo">
+        </div>
+
+        <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px; color: var(--artiflow-navy);">Gérez vos devis et factures en toute simplicité</h2>
+        <p class="auth-tagline">Une application pensée pour les artisans indépendants. Gagnez du temps et suivez vos encaissements.</p>
+
+        <div class="feature-list-box">
+          <div class="feature-item">
+            <i class="ri-checkbox-circle-fill"></i>
+            <span>Créez vos devis en quelques clics</span>
+          </div>
+          <div class="feature-item">
+            <i class="ri-checkbox-circle-fill"></i>
+            <span>Gérez vos factures sans double saisie</span>
+          </div>
+          <div class="feature-item">
+            <i class="ri-checkbox-circle-fill"></i>
+            <span>Suivez vos encaissements en temps réel</span>
           </div>
         </div>
 
-        <div class="auth-tabs">
-          <button class="auth-tab active" onclick="switchAuthTab('login')">Connexion</button>
-          <button class="auth-tab" onclick="switchAuthTab('register')">Créer un compte</button>
+        <!-- Auth Tabs -->
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+          <button class="btn btn-navy" style="flex: 1; justify-content: center;" onclick="showLoginForm()">Se connecter</button>
+          <button class="btn btn-terracotta" style="flex: 1; justify-content: center;" onclick="showRegisterForm()">Créer un compte</button>
         </div>
 
         <!-- Login Form -->
-        <form id="login-form" onsubmit="handleLogin(event)">
+        <form id="login-form" onsubmit="handleLogin(event)" style="display: none; text-align: left;">
           <div class="form-group">
             <label>Adresse Email</label>
-            <input type="email" id="login-email" class="form-control" placeholder="artisan@exemple.fr" required>
+            <input type="email" id="login-email" class="form-input" placeholder="artisan@exemple.fr" required>
           </div>
           <div class="form-group">
             <label>Mot de passe</label>
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
-            <i class="ri-login-box-line"></i> Se connecter
-          </button>
+          <button type="submit" class="btn btn-navy" style="width: 100%; justify-content: center; padding: 12px;">Se connecter</button>
         </form>
 
         <!-- Register Form -->
-        <form id="register-form" onsubmit="handleRegister(event)" style="display: none;">
+        <form id="register-form" onsubmit="handleRegister(event)" style="display: none; text-align: left;">
           <div class="form-group">
             <label>Nom de l'entreprise</label>
-            <input type="text" id="reg-company" class="form-control" placeholder="ELEC & CO EURL" required>
+            <input type="text" id="reg-company" class="form-input" placeholder="Électricité & Co SARL" required>
           </div>
           <div class="form-group">
             <label>Nom de l'artisan</label>
-            <input type="text" id="reg-name" class="form-control" placeholder="Jean Dupont" required>
+            <input type="text" id="reg-name" class="form-input" placeholder="Amine Traoré" required>
           </div>
           <div class="form-group">
             <label>Adresse Email</label>
-            <input type="email" id="reg-email" class="form-control" placeholder="jean@elec.fr" required>
+            <input type="email" id="reg-email" class="form-input" placeholder="amine@electricite.fr" required>
           </div>
           <div class="form-group">
             <label>Mot de passe</label>
-            <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required>
+            <input type="password" id="reg-password" class="form-input" placeholder="••••••••" required>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Téléphone</label>
-              <input type="text" id="reg-phone" class="form-control" placeholder="06 12 34 56 78">
-            </div>
-            <div class="form-group">
-              <label>N° SIRET</label>
-              <input type="text" id="reg-siret" class="form-control" placeholder="123 456 789 00012">
-            </div>
-          </div>
-          <button type="submit" class="btn btn-accent" style="width: 100%; justify-content: center; padding: 12px;">
-            <i class="ri-user-add-line"></i> Créer mon compte
-          </button>
+          <button type="submit" class="btn btn-terracotta" style="width: 100%; justify-content: center; padding: 12px;">Créer mon compte</button>
         </form>
 
-        <!-- Quick Demo Login Button -->
-        <button class="quick-demo-btn" onclick="quickDemoLogin()">
-          ⚡ Tester l'application avec un compte démonstration instantané
+        <!-- Quick Demo Account Action -->
+        <button class="quick-demo-action" onclick="quickDemoLogin()">
+          ⚡ Tester avec un compte démonstration instantané
         </button>
       </div>
     </div>
 
-    <!-- PUBLIC VIEWING CONTAINER (Displayed when accessing /public/devis/:token or /public/factures/:token) -->
-    <div id="public-container" class="public-container" style="display: none;">
+    <!-- PUBLIC VIEWING CONTAINER (Unauthenticated) -->
+    <div id="public-container" class="public-view-container" style="display: none;">
       <div id="public-content">
         <!-- Rendered dynamically -->
       </div>
@@ -318,25 +354,25 @@
 
   <!-- MODAL 1: Create / Edit Devis -->
   <div id="devis-modal" class="modal-overlay">
-    <div class="modal-card">
+    <div class="modal-box">
       <div class="modal-header">
-        <h3 id="devis-modal-title">Créer un Devis</h3>
-        <button class="close-modal" onclick="closeModal('devis-modal')">&times;</button>
+        <h3 id="devis-modal-title">Créer un devis</h3>
+        <button class="close-btn" onclick="closeModal('devis-modal')">&times;</button>
       </div>
 
       <form id="devis-form" onsubmit="saveDevis(event)">
         <input type="hidden" id="devis-id">
-        
-        <div class="form-row">
+
+        <div class="form-grid">
           <div class="form-group">
-            <label>Client</label>
-            <select id="devis-client-id" class="form-control" required>
+            <label>Client *</label>
+            <select id="devis-client-id" class="form-input" required>
               <!-- Filled dynamically -->
             </select>
           </div>
           <div class="form-group">
             <label>Statut</label>
-            <select id="devis-statut" class="form-control">
+            <select id="devis-statut" class="form-input">
               <option value="brouillon">Brouillon</option>
               <option value="envoye">Envoyé</option>
               <option value="accepte">Accepté</option>
@@ -345,44 +381,42 @@
         </div>
 
         <div style="margin: 20px 0 10px 0; display: flex; justify-content: space-between; align-items: center;">
-          <h4 style="font-size: 15px; font-weight: 700;">Lignes du devis</h4>
+          <h4 style="font-size: 15px; font-weight: 800;">Lignes du devis</h4>
           <button type="button" class="btn btn-outline btn-sm" onclick="addDevisLine()">
             <i class="ri-add-line"></i> Ajouter une ligne
           </button>
         </div>
 
-        <table class="lines-table">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
           <thead>
-            <tr>
-              <th style="width: 45%;">Désignation</th>
-              <th style="width: 15%;">Qté</th>
-              <th style="width: 25%;">Prix Unitaire (€)</th>
-              <th style="width: 15%;">Action</th>
+            <tr style="border-bottom: 1px solid var(--border-color); text-align: left; font-size: 12px; color: var(--text-muted);">
+              <th style="padding: 8px; width: 45%;">Désignation</th>
+              <th style="padding: 8px; width: 15%;">Qté</th>
+              <th style="padding: 8px; width: 25%;">P.U. HT (€)</th>
+              <th style="padding: 8px; width: 15%; text-align: center;">Action</th>
             </tr>
           </thead>
           <tbody id="devis-lines-body">
-            <!-- Dynamic lines -->
+            <!-- Rendered dynamically -->
           </tbody>
         </table>
 
-        <div class="totals-summary">
-          <div class="totals-row">
-            <span>Total HT :</span>
-            <span id="modal-total-ht">0,00 €</span>
+        <!-- Totals box -->
+        <div style="background: var(--bg-input); padding: 16px; border-radius: var(--radius-md); margin-left: auto; width: 280px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
+            <span>Total HT :</span><strong id="modal-total-ht">0,00 €</strong>
           </div>
-          <div class="totals-row">
-            <span>TVA (20%) :</span>
-            <span id="modal-total-tva">0,00 €</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
+            <span>TVA (20%) :</span><strong id="modal-total-tva">0,00 €</strong>
           </div>
-          <div class="totals-row grand-total">
-            <span>Total TTC :</span>
-            <span id="modal-total-ttc">0,00 €</span>
+          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; color: var(--artiflow-navy); border-top: 1px solid var(--border-color); padding-top: 8px;">
+            <span>Total TTC :</span><strong id="modal-total-ttc">0,00 €</strong>
           </div>
         </div>
 
         <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('devis-modal')">Annuler</button>
-          <button type="submit" class="btn btn-primary">Enregistrer le Devis</button>
+          <button type="submit" class="btn btn-terracotta">Enregistrer le devis</button>
         </div>
       </form>
     </div>
@@ -390,63 +424,63 @@
 
   <!-- MODAL 2: Create / Edit Client -->
   <div id="client-modal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 500px;">
+    <div class="modal-box" style="max-width: 480px;">
       <div class="modal-header">
-        <h3 id="client-modal-title">Fiche Client</h3>
-        <button class="close-modal" onclick="closeModal('client-modal')">&times;</button>
+        <h3 id="client-modal-title">Fiche client</h3>
+        <button class="close-btn" onclick="closeModal('client-modal')">&times;</button>
       </div>
 
       <form id="client-form" onsubmit="saveClient(event)">
         <input type="hidden" id="client-id">
         <div class="form-group">
-          <label>Nom ou Raison Sociale *</label>
-          <input type="text" id="client-nom" class="form-control" placeholder="M. Paul Valéry" required>
+          <label>Nom ou Raison sociale *</label>
+          <input type="text" id="client-nom" class="form-input" placeholder="SARL Bâtir Plus" required>
         </div>
         <div class="form-group">
           <label>Email</label>
-          <input type="email" id="client-email" class="form-control" placeholder="client@domaine.com">
+          <input type="email" id="client-email" class="form-input" placeholder="contact@batirplus.fr">
         </div>
         <div class="form-group">
           <label>Téléphone</label>
-          <input type="text" id="client-phone" class="form-control" placeholder="06 98 76 54 32">
+          <input type="text" id="client-phone" class="form-input" placeholder="06 12 34 56 78">
         </div>
         <div class="form-group">
           <label>Adresse complète</label>
-          <textarea id="client-adresse" class="form-control" rows="3" placeholder="12 Rue des Artisans, 75001 Paris"></textarea>
+          <textarea id="client-adresse" class="form-input" rows="3" placeholder="10 Rue des Artisans, 75001 Paris"></textarea>
         </div>
 
         <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('client-modal')">Annuler</button>
-          <button type="submit" class="btn btn-primary">Enregistrer Client</button>
+          <button type="submit" class="btn btn-terracotta">Enregistrer client</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL 3: Payment / Acompte Registration -->
+  <!-- MODAL 3: Payment / Acompte Registration (Matches Maquette 1 Screenshot 4) -->
   <div id="payment-modal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 480px;">
+    <div class="modal-box" style="max-width: 460px;">
       <div class="modal-header">
-        <h3>Enregistrer un Paiement</h3>
-        <button class="close-modal" onclick="closeModal('payment-modal')">&times;</button>
+        <h3>+ Ajouter un paiement</h3>
+        <button class="close-btn" onclick="closeModal('payment-modal')">&times;</button>
       </div>
 
       <form id="payment-form" onsubmit="savePayment(event)">
         <input type="hidden" id="payment-facture-id">
 
-        <div style="background: rgba(2, 132, 199, 0.1); padding: 14px; border-radius: 8px; margin-bottom: 20px;">
-          <div style="font-size: 12px; color: var(--text-muted);">Facture : <strong id="payment-facture-num">FACT-XXXX</strong></div>
-          <div style="font-size: 14px; margin-top: 4px;">Solde restant à payer : <strong id="payment-facture-solde" style="color: var(--danger);">0,00 €</strong></div>
+        <div style="background: var(--badge-blue-bg); padding: 14px; border-radius: var(--radius-md); margin-bottom: 20px;">
+          <div style="font-size: 13px; color: var(--text-muted);">Facture : <strong id="payment-facture-num">FACT-XXXX</strong></div>
+          <div style="font-size: 15px; margin-top: 4px;">Solde restant à payer : <strong id="payment-facture-solde" style="color: var(--artiflow-terracotta);">0,00 €</strong></div>
         </div>
 
         <div class="form-group">
-          <label>Montant du règlement en Euros (€) *</label>
-          <input type="number" step="0.01" id="payment-amount" class="form-control" placeholder="150.00" required>
+          <label>Montant du règlement (€) *</label>
+          <input type="number" step="0.01" id="payment-amount" class="form-input" placeholder="150.00" required>
         </div>
 
         <div class="form-group">
           <label>Mode de règlement</label>
-          <select id="payment-mode" class="form-control">
+          <select id="payment-mode" class="form-input">
             <option value="virement" selected>Virement bancaire</option>
             <option value="carte">Carte bancaire</option>
             <option value="cheque">Chèque</option>
@@ -456,12 +490,12 @@
 
         <div class="form-group">
           <label>Notes / Référence</label>
-          <input type="text" id="payment-notes" class="form-control" placeholder="Acompte 30% / Virement N°123">
+          <input type="text" id="payment-notes" class="form-input" placeholder="Acompte 30%">
         </div>
 
         <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('payment-modal')">Annuler</button>
-          <button type="submit" class="btn btn-accent">Confirmer le paiement</button>
+          <button type="submit" class="btn btn-navy">Enregistrer le paiement</button>
         </div>
       </form>
     </div>
@@ -469,21 +503,20 @@
 
   <!-- MODAL 4: Share Public Link Modal -->
   <div id="share-modal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 520px;">
+    <div class="modal-box" style="max-width: 500px;">
       <div class="modal-header">
-        <h3>Lien Public de Consultation Client</h3>
-        <button class="close-modal" onclick="closeModal('share-modal')">&times;</button>
+        <h3>🔗 Lien public de consultation</h3>
+        <button class="close-btn" onclick="closeModal('share-modal')">&times;</button>
       </div>
 
       <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-        Ce lien donne un accès <strong>strictement en lecture seule</strong> à votre client, sans authentification requise. Aucune action d'écriture n'y est possible.
+        Accessible sans authentification. <strong>Lecture seule garantie</strong> (aucune action d'écriture possible).
       </p>
 
       <div class="form-group">
-        <label>Lien Public</label>
         <div style="display: flex; gap: 8px;">
-          <input type="text" id="share-link-input" class="form-control" readonly>
-          <button class="btn btn-primary" onclick="copyShareLink()">Copier</button>
+          <input type="text" id="share-link-input" class="form-input" readonly>
+          <button class="btn btn-terracotta" onclick="copyShareLink()">Copier</button>
         </div>
       </div>
 
@@ -493,7 +526,6 @@
     </div>
   </div>
 
-  <!-- Application Script -->
   <script src="/app.js"></script>
 </body>
 </html>
