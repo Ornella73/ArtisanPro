@@ -58,10 +58,11 @@ function calculateDocumentTotals(lignes = []) {
  */
 function formatCentsToEuros(cents) {
   const amount = (Number(cents) || 0) / 100;
-  return new Intl.NumberFormat('fr-FR', {
+  const formatted = new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'EUR'
   }).format(amount);
+  return formatted.replace(/[\u202f\u00a0]/g, ' ');
 }
 
 module.exports = {

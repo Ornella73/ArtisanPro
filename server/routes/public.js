@@ -101,13 +101,9 @@ router.get('/devis/:token/pdf', (req, res) => {
       return res.status(404).json({ error: 'Devis introuvable.' });
     }
 
-    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(devis.client_id);
-    const artisanRaw = db.prepare('SELECT id, email, nom_entreprise, nom_artisan, telephone, siret, adresse FROM artisans WHERE id = ?').get(devis.artisan_id);
-    const lignes = db.prepare('SELECT * FROM devis_lignes WHERE devis_id = ? ORDER BY id ASC').all(devis.id);
-
-    if (!client || !artisanRaw) {
-      return res.status(404).json({ error: 'Données du devis incomplètes.' });
-    }
+    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(devis.client_id) || {};
+    const artisanRaw = db.prepare('SELECT id, email, nom_entreprise, nom_artisan, telephone, siret, adresse FROM artisans WHERE id = ?').get(devis.artisan_id) || {};
+    const lignes = db.prepare('SELECT * FROM devis_lignes WHERE devis_id = ? ORDER BY id ASC').all(devis.id) || [];
 
     // Sanitize — ensure no null crashes in PDFKit
     const artisan = {
@@ -119,7 +115,7 @@ router.get('/devis/:token/pdf', (req, res) => {
       adresse: artisanRaw.adresse || ''
     };
     const safeClient = {
-      nom: client.nom || '',
+      nom: client.nom || 'Client',
       email: client.email || '',
       telephone: client.telephone || '',
       adresse: client.adresse || ''

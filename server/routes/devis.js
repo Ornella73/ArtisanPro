@@ -507,14 +507,16 @@ router.get('/:id/pdf', (req, res) => {
       return res.status(404).json({ error: 'Devis introuvable ou accès refusé.' });
     }
 
-    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(devis.client_id);
-    const artisan = req.artisan;
-    const lignes = db.prepare('SELECT * FROM devis_lignes WHERE devis_id = ? ORDER BY id ASC').all(devis.id);
+    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(devis.client_id) || {};
+    const artisan = req.artisan || {};
+    const lignes = db.prepare('SELECT * FROM devis_lignes WHERE devis_id = ? ORDER BY id ASC').all(devis.id) || [];
 
     generateDevisPDF(devis, client, artisan, lignes, res);
   } catch (err) {
     console.error('Private devis PDF error:', err);
-    res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    }
   }
 });
 

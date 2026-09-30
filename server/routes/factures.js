@@ -194,15 +194,17 @@ router.get('/:id/pdf', (req, res) => {
       return res.status(404).json({ error: 'Facture introuvable ou accès refusé.' });
     }
 
-    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(facture.client_id);
-    const artisan = req.artisan;
-    const lignes = db.prepare('SELECT * FROM facture_lignes WHERE facture_id = ? ORDER BY id ASC').all(facture.id);
-    const paiements = db.prepare('SELECT * FROM paiements WHERE facture_id = ? ORDER BY date_paiement ASC').all(facture.id);
+    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(facture.client_id) || {};
+    const artisan = req.artisan || {};
+    const lignes = db.prepare('SELECT * FROM facture_lignes WHERE facture_id = ? ORDER BY id ASC').all(facture.id) || [];
+    const paiements = db.prepare('SELECT * FROM paiements WHERE facture_id = ? ORDER BY date_paiement ASC').all(facture.id) || [];
 
     generateFacturePDF(facture, client, artisan, lignes, paiements, res);
   } catch (err) {
     console.error('Private facture PDF error:', err);
-    res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+    }
   }
 });
 

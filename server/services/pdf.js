@@ -10,31 +10,55 @@ function safe(val, fallback = '') {
 }
 
 /**
+ * Safely format a date for PDF output — prevents RangeError on invalid date values.
+ */
+function formatDate(dateVal) {
+  if (!dateVal) return '-';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('fr-FR');
+}
+
+/**
  * Collect a PDFDocument into a Buffer, then send atomically.
- * This prevents ERR_HTTP_HEADERS_SENT: headers are only set AFTER
- * the full PDF is successfully generated in memory.
+ * Prevents ERR_HTTP_HEADERS_SENT by preventing doc listeners from flushing half-written PDF
+ * if an error occurs during buildFn.
  */
 function sendPDF(doc, filename, res, buildFn) {
   const chunks = [];
+  let errorOccurred = false;
 
-  doc.on('data', (chunk) => chunks.push(chunk));
+  doc.on('data', (chunk) => {
+    if (!errorOccurred) {
+      chunks.push(chunk);
+    }
+  });
 
   doc.on('end', () => {
+    if (errorOccurred) return;
     try {
       const pdfBuffer = Buffer.concat(chunks);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-      res.setHeader('Content-Length', pdfBuffer.length);
-      res.end(pdfBuffer);
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        res.end(pdfBuffer);
+      }
     } catch (err) {
-      console.error('PDF send error:', err);
+      console.error('PDF stream flush error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
+      }
     }
   });
 
   doc.on('error', (err) => {
     console.error('PDFKit internal error:', err);
+    errorOccurred = true;
+    doc.removeAllListeners('data');
+    doc.removeAllListeners('end');
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Erreur interne lors de la génération du PDF.' });
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
     }
   });
 
@@ -43,12 +67,11 @@ function sendPDF(doc, filename, res, buildFn) {
     doc.end();
   } catch (err) {
     console.error('PDF build error:', err);
-    // end the doc to flush & avoid hanging response
-    try { doc.end(); } catch (_) {}
+    errorOccurred = true;
+    doc.removeAllListeners('data');
+    doc.removeAllListeners('end');
     if (!res.headersSent) {
-      res.status(500).json({
-        error: 'Erreur lors de la génération du PDF : ' + err.message
-      });
+      res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
     }
   }
 }
@@ -57,7 +80,12 @@ function sendPDF(doc, filename, res, buildFn) {
 // DEVIS PDF
 // ─────────────────────────────────────────────────────────────────────────────
 
-function generateDevisPDF(devis, client, artisan, lines, res) {
+function generateDevisPDF(rawDevis, rawClient, rawArtisan, rawLines, res) {
+  const devis = rawDevis || {};
+  const client = rawClient || {};
+  const artisan = rawArtisan || {};
+  const lines = Array.isArray(rawLines) ? rawLines : [];
+
   const doc = new PDFDocument({ margin: 50, size: 'A4' });
   const filename = `Devis_${safe(devis.numero, 'DEV')}_v${safe(devis.version, '1')}.pdf`;
 
@@ -82,12 +110,8 @@ function generateDevisPDF(devis, client, artisan, lines, res) {
     doc.fontSize(10).font('Helvetica-Bold').fillColor(primaryColor);
     doc.text(`N° ${safe(devis.numero)}`, 350, 72, { align: 'right' });
     doc.font('Helvetica').fillColor('#64748b');
-    doc.text(`Version : ${safe(devis.version)}`, 350, 86, { align: 'right' });
-
-    const dateStr = devis.created_at
-      ? new Date(devis.created_at).toLocaleDateString('fr-FR')
-      : '-';
-    doc.text(`Date : ${dateStr}`, 350, 100, { align: 'right' });
+    doc.text(`Version : ${safe(devis.version, '1')}`, 350, 86, { align: 'right' });
+    doc.text(`Date : ${formatDate(devis.created_at)}`, 350, 100, { align: 'right' });
 
     const statut = safe(devis.statut, 'brouillon');
     let statusLabel = statut.toUpperCase();
@@ -104,7 +128,7 @@ function generateDevisPDF(devis, client, artisan, lines, res) {
     doc.rect(320, clientTop, 225, 80).fillAndStroke(lightBg, '#e2e8f0');
     doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold')
        .text('CLIENT', 335, clientTop + 10);
-    doc.font('Helvetica').fontSize(10).text(safe(client.nom), 335, clientTop + 25);
+    doc.font('Helvetica').fontSize(10).text(safe(client.nom, 'Client'), 335, clientTop + 25);
     if (client.adresse) doc.text(safe(client.adresse), 335, clientTop + 40, { width: 200 });
     if (client.email)   doc.text(`Email : ${safe(client.email)}`, 335, clientTop + 55, { width: 200 });
 
@@ -122,7 +146,8 @@ function generateDevisPDF(devis, client, artisan, lines, res) {
     let y = tableTop + 30;
     doc.font('Helvetica').fontSize(9).fillColor(primaryColor);
 
-    (lines || []).forEach((line, index) => {
+    lines.forEach((line, index) => {
+      if (!line) return;
       if (y > 700) { doc.addPage(); y = 50; }
 
       if (index % 2 === 1) {
@@ -133,7 +158,7 @@ function generateDevisPDF(devis, client, artisan, lines, res) {
       const qte = line.quantite != null ? String(line.quantite) : '1';
       const tva = line.taux_tva  != null ? `${line.taux_tva}%` : '0%';
 
-      doc.text(safe(line.designation), 60,  y, { width: 215 });
+      doc.text(safe(line.designation, 'Article'), 60,  y, { width: 215 });
       doc.text(qte,                    280, y, { width: 50,  align: 'center' });
       doc.text(formatCentsToEuros(line.prix_unitaire_cents || 0), 340, y, { width: 60, align: 'right' });
       doc.text(tva,                    410, y, { width: 40,  align: 'right'  });
@@ -172,7 +197,13 @@ function generateDevisPDF(devis, client, artisan, lines, res) {
 // FACTURE PDF
 // ─────────────────────────────────────────────────────────────────────────────
 
-function generateFacturePDF(facture, client, artisan, lines, paiements, res) {
+function generateFacturePDF(rawFacture, rawClient, rawArtisan, rawLines, rawPaiements, res) {
+  const facture = rawFacture || {};
+  const client = rawClient || {};
+  const artisan = rawArtisan || {};
+  const lines = Array.isArray(rawLines) ? rawLines : [];
+  const paiements = Array.isArray(rawPaiements) ? rawPaiements : [];
+
   const doc = new PDFDocument({ margin: 50, size: 'A4' });
   const filename = `Facture_${safe(facture.numero, 'FAC')}.pdf`;
 
@@ -197,11 +228,7 @@ function generateFacturePDF(facture, client, artisan, lines, paiements, res) {
     doc.fontSize(10).font('Helvetica-Bold').fillColor(primaryColor);
     doc.text(`N° ${safe(facture.numero)}`, 350, 72, { align: 'right' });
     doc.font('Helvetica').fillColor('#64748b');
-
-    const emissionStr = facture.date_emission
-      ? new Date(facture.date_emission).toLocaleDateString('fr-FR')
-      : '-';
-    doc.text(`Date d'emission : ${emissionStr}`, 350, 86, { align: 'right' });
+    doc.text(`Date d'emission : ${formatDate(facture.date_emission)}`, 350, 86, { align: 'right' });
 
     const fStatut = safe(facture.statut, 'emise');
     let statusLabel = 'EMISE';
@@ -217,7 +244,7 @@ function generateFacturePDF(facture, client, artisan, lines, paiements, res) {
     doc.rect(320, clientTop, 225, 80).fillAndStroke(lightBg, '#e2e8f0');
     doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold')
        .text('CLIENT', 335, clientTop + 10);
-    doc.font('Helvetica').fontSize(10).text(safe(client.nom), 335, clientTop + 25);
+    doc.font('Helvetica').fontSize(10).text(safe(client.nom, 'Client'), 335, clientTop + 25);
     if (client.adresse) doc.text(safe(client.adresse), 335, clientTop + 40, { width: 200 });
     if (client.email)   doc.text(`Email : ${safe(client.email)}`, 335, clientTop + 55, { width: 200 });
 
@@ -235,7 +262,8 @@ function generateFacturePDF(facture, client, artisan, lines, paiements, res) {
     let y = tableTop + 30;
     doc.font('Helvetica').fontSize(9).fillColor(primaryColor);
 
-    (lines || []).forEach((line, index) => {
+    lines.forEach((line, index) => {
+      if (!line) return;
       if (y > 650) { doc.addPage(); y = 50; }
 
       if (index % 2 === 1) {
@@ -246,7 +274,7 @@ function generateFacturePDF(facture, client, artisan, lines, paiements, res) {
       const qte = line.quantite != null ? String(line.quantite) : '1';
       const tva = line.taux_tva  != null ? `${line.taux_tva}%` : '0%';
 
-      doc.text(safe(line.designation), 60,  y, { width: 215 });
+      doc.text(safe(line.designation, 'Article'), 60,  y, { width: 215 });
       doc.text(qte,                    280, y, { width: 50,  align: 'center' });
       doc.text(formatCentsToEuros(line.prix_unitaire_cents || 0), 340, y, { width: 60, align: 'right' });
       doc.text(tva,                    410, y, { width: 40,  align: 'right'  });
@@ -260,17 +288,17 @@ function generateFacturePDF(facture, client, artisan, lines, paiements, res) {
 
     // ── Payments + Summary ────────────────────────────────────────────────
     const summaryTop = y;
-    const safePaiements = paiements || [];
-    const totalPayeCents      = safePaiements.reduce((sum, p) => sum + (p.montant_cents || 0), 0);
+    const totalPayeCents      = paiements.reduce((sum, p) => sum + ((p && p.montant_cents) || 0), 0);
     const soldeRestantCents   = Math.max(0, (facture.total_ttc_cents || 0) - totalPayeCents);
 
-    if (safePaiements.length > 0) {
+    if (paiements.length > 0) {
       doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold')
          .text('Acomptes & Paiements recus :', 50, summaryTop);
       let payY = summaryTop + 15;
       doc.font('Helvetica').fontSize(8);
-      safePaiements.forEach((p) => {
-        const dateP = p.date_paiement ? new Date(p.date_paiement).toLocaleDateString('fr-FR') : '-';
+      paiements.forEach((p) => {
+        if (!p) return;
+        const dateP = formatDate(p.date_paiement);
         const mode  = p.mode_paiement ? safe(p.mode_paiement).toUpperCase() : 'VIREMENT';
         doc.text(
           `${dateP} (${mode}) : ${formatCentsToEuros(p.montant_cents || 0)}`,
