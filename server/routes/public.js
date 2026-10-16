@@ -3,14 +3,18 @@ const router = express.Router();
 const db = require('../database');
 const { generateDevisPDF, generateFacturePDF } = require('../services/pdf');
 
-// STRICT SECURITY RULE: Block ALL write operations on public routes
+// Security rule: Only allow GET/HEAD/OPTIONS, or specific client interaction POST endpoints
 router.use((req, res, next) => {
-  if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
-    return res.status(405).json({
-      error: 'Accès refusé : Les liens publics sont strictement réservés à la lecture seule. Aucune action d\'écriture n\'est autorisée.'
-    });
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+    return next();
   }
-  next();
+  // Allow public actions on devis: /devis/:token/accepter and /devis/:token/demande-info
+  if (req.method === 'POST' && (req.path.includes('/accepter') || req.path.includes('/demande-info'))) {
+    return next();
+  }
+  return res.status(405).json({
+    error: 'Accès refusé : Seules les actions de validation et de demande d\'informations sont autorisées.'
+  });
 });
 
 // GET /api/public/devis/:token - Public read-only quote details
@@ -52,6 +56,8 @@ router.get('/devis/:token', (req, res) => {
       `).get(rootId, rootId);
     }
 
+    const messages = db.prepare('SELECT * FROM devis_messages WHERE devis_id = ? ORDER BY created_at ASC').all(devis.id) || [];
+
     res.json({
       is_public: true,
       devis: {
@@ -63,6 +69,8 @@ router.get('/devis/:token', (req, res) => {
         total_tva_cents: devis.total_tva_cents,
         total_ttc_cents: devis.total_ttc_cents,
         created_at: devis.created_at,
+        date_acceptation: devis.date_acceptation || null,
+        signature_client: devis.signature_client || null,
         facture_numero: devis.facture_numero,
         facture_public_token: devis.facture_public_token,
         facture_statut: devis.facture_statut
@@ -82,6 +90,7 @@ router.get('/devis/:token', (req, res) => {
         adresse: devis.artisan_adresse
       },
       lignes,
+      messages,
       replacement_notice: devis.statut === 'remplace' ? {
         message: 'Ce devis a été remplacé par une version plus récente émise par l\'artisan.',
         newest_version: newestVersion
@@ -90,6 +99,88 @@ router.get('/devis/:token', (req, res) => {
   } catch (err) {
     console.error('Public devis error:', err);
     res.status(500).json({ error: 'Erreur lors du chargement du devis public.' });
+  }
+});
+
+// POST /api/public/devis/:token/accepter - Client accepts the quote online
+router.post('/devis/:token/accepter', (req, res) => {
+  try {
+    const devis = db.prepare('SELECT * FROM devis WHERE public_token = ?').get(req.params.token);
+    if (!devis) {
+      return res.status(404).json({ error: 'Devis introuvable ou lien expiré.' });
+    }
+
+    if (devis.statut === 'remplace') {
+      return res.status(400).json({ error: 'Ce devis a été remplacé par une version plus récente et ne peut pas être accepté.' });
+    }
+
+    if (devis.statut === 'converti') {
+      return res.status(400).json({ error: 'Ce devis a déjà été accepté et facturé.' });
+    }
+
+    if (devis.statut === 'accepte') {
+      return res.json({ message: 'Ce devis a déjà été accepté.', statut: 'accepte' });
+    }
+
+    const { signature, nom_signataire } = req.body || {};
+    const signataireName = (nom_signataire || signature || 'Client').trim();
+
+    db.transaction(() => {
+      db.prepare(`
+        UPDATE devis 
+        SET statut = 'accepte', date_acceptation = CURRENT_TIMESTAMP, signature_client = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(signataireName, devis.id);
+
+      db.prepare(`
+        INSERT INTO devis_messages (devis_id, auteur, nom_expediteur, message)
+        VALUES (?, 'client', ?, '✅ Devis accepté et validé en ligne par le client.')
+      `).run(devis.id, signataireName);
+    })();
+
+    res.json({
+      success: true,
+      message: 'Félicitations ! Votre devis a été accepté avec succès. L\'artisan a été informé.',
+      statut: 'accepte',
+      date_acceptation: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Accept devis error:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'acceptation du devis.' });
+  }
+});
+
+// POST /api/public/devis/:token/demande-info - Client asks question / extra information
+router.post('/devis/:token/demande-info', (req, res) => {
+  try {
+    const devis = db.prepare('SELECT * FROM devis WHERE public_token = ?').get(req.params.token);
+    if (!devis) {
+      return res.status(404).json({ error: 'Devis introuvable ou lien expiré.' });
+    }
+
+    const { message, nom, email, telephone } = req.body || {};
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Veuillez saisir votre message ou question.' });
+    }
+
+    db.prepare(`
+      INSERT INTO devis_messages (devis_id, auteur, nom_expediteur, email, telephone, message)
+      VALUES (?, 'client', ?, ?, ?, ?)
+    `).run(
+      devis.id,
+      (nom || '').trim() || null,
+      (email || '').trim() || null,
+      (telephone || '').trim() || null,
+      message.trim()
+    );
+
+    res.json({
+      success: true,
+      message: 'Votre message a bien été envoyé à l\'artisan. Il reviendra vers vous très rapidement.'
+    });
+  } catch (err) {
+    console.error('Demande info error:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'envoi de votre demande.' });
   }
 });
 

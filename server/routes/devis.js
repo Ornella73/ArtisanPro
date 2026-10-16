@@ -51,7 +51,34 @@ router.get('/', (req, res) => {
   }
 });
 
-// GET /api/devis/:id - Get single devis with lines and history
+// Helper to resolve or auto-create client in database
+function resolveClientId(artisanId, body) {
+  const { client_id, new_client } = body;
+  if (new_client && (new_client.nom || '').trim()) {
+    const nom = new_client.nom.trim();
+    const email = (new_client.email || '').trim() || null;
+    const telephone = (new_client.telephone || '').trim() || null;
+    const adresse = (new_client.adresse || '').trim() || null;
+
+    const res = db.prepare(`
+      INSERT INTO clients (artisan_id, nom, email, telephone, adresse)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(artisanId, nom, email, telephone, adresse);
+    return res.lastInsertRowid;
+  }
+
+  if (!client_id || client_id === 'new') {
+    throw new Error('Le client est obligatoire. Sélectionnez un client ou renseignez le nouveau client.');
+  }
+
+  const client = db.prepare('SELECT id FROM clients WHERE id = ? AND artisan_id = ?').get(client_id, artisanId);
+  if (!client) {
+    throw new Error('Client non trouvé ou accès refusé.');
+  }
+  return client.id;
+}
+
+// GET /api/devis/:id - Get single devis with lines, history and messages
 router.get('/:id', (req, res) => {
   try {
     const devis = db.prepare(`
@@ -68,6 +95,7 @@ router.get('/:id', (req, res) => {
     }
 
     const lignes = db.prepare('SELECT * FROM devis_lignes WHERE devis_id = ? ORDER BY id ASC').all(devis.id);
+    const messages = db.prepare('SELECT * FROM devis_messages WHERE devis_id = ? ORDER BY created_at ASC').all(devis.id) || [];
 
     // Fetch version history if available
     let versions = [];
@@ -84,6 +112,7 @@ router.get('/:id', (req, res) => {
     res.json({
       ...devis,
       lignes,
+      messages,
       versions
     });
   } catch (err) {
@@ -92,19 +121,16 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// POST /api/devis - Create new devis
+// POST /api/devis - Create new devis (supports auto-creating new clients)
 router.post('/', (req, res) => {
   try {
-    const { client_id, lignes, statut = 'brouillon' } = req.body;
+    const { client_id, new_client, lignes, statut = 'brouillon' } = req.body;
 
-    if (!client_id) {
-      return res.status(400).json({ error: 'Le client est obligatoire.' });
-    }
-
-    // Verify client belongs to artisan
-    const client = db.prepare('SELECT id FROM clients WHERE id = ? AND artisan_id = ?').get(client_id, req.artisan.id);
-    if (!client) {
-      return res.status(404).json({ error: 'Client non trouvé ou accès refusé.' });
+    let targetClientId;
+    try {
+      targetClientId = resolveClientId(req.artisan.id, req.body);
+    } catch (clientErr) {
+      return res.status(400).json({ error: clientErr.message });
     }
 
     if (!Array.isArray(lignes) || lignes.length === 0) {
@@ -128,7 +154,7 @@ router.post('/', (req, res) => {
     const insertResult = db.transaction(() => {
       const resDevis = insertStmt.run(
         req.artisan.id,
-        client_id,
+        targetClientId,
         numero,
         statut,
         computed.total_ht_cents,
@@ -168,6 +194,7 @@ router.post('/', (req, res) => {
 
     res.status(201).json({
       ...createdDevis,
+      client_id: targetClientId,
       lignes: createdLignes
     });
   } catch (err) {
@@ -195,7 +222,13 @@ router.put('/:id', (req, res) => {
       return res.status(400).json({ error: 'Le devis doit contenir au moins une ligne.' });
     }
 
-    const clientIdToUse = client_id || existingDevis.client_id;
+    let clientIdToUse = client_id;
+    if (req.body.new_client && (req.body.new_client.nom || '').trim()) {
+      clientIdToUse = resolveClientId(req.artisan.id, req.body);
+    } else {
+      clientIdToUse = client_id || existingDevis.client_id;
+    }
+
     const client = db.prepare('SELECT id FROM clients WHERE id = ? AND artisan_id = ?').get(clientIdToUse, req.artisan.id);
     if (!client) {
       return res.status(404).json({ error: 'Client non trouvé.' });
@@ -379,6 +412,57 @@ router.post('/:id/share', (req, res) => {
   } catch (err) {
     console.error('Share devis error:', err);
     res.status(500).json({ error: 'Erreur lors du partage.' });
+  }
+});
+
+// POST /api/devis/:id/send-email - Send quote directly by email to client
+router.post('/:id/send-email', (req, res) => {
+  try {
+    const devis = db.prepare(`
+      SELECT d.*, c.nom as client_nom, c.email as client_email, a.nom_entreprise, a.nom_artisan, a.email as artisan_email
+      FROM devis d
+      JOIN clients c ON c.id = d.client_id
+      JOIN artisans a ON a.id = d.artisan_id
+      WHERE d.id = ? AND d.artisan_id = ?
+    `).get(req.params.id, req.artisan.id);
+
+    if (!devis) {
+      return res.status(404).json({ error: 'Devis introuvable ou accès refusé.' });
+    }
+
+    const { email, message, sujet } = req.body || {};
+    const destEmail = (email || devis.client_email || '').trim();
+
+    if (!destEmail) {
+      return res.status(400).json({ error: 'L\'adresse email du destinataire est requise.' });
+    }
+
+    // Automatically transition draft devis to 'envoye'
+    let updatedStatut = devis.statut;
+    if (devis.statut === 'brouillon') {
+      db.prepare(`UPDATE devis SET statut = 'envoye', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(devis.id);
+      updatedStatut = 'envoye';
+    }
+
+    // Record email transmission in messages
+    db.prepare(`
+      INSERT INTO devis_messages (devis_id, auteur, nom_expediteur, email, message)
+      VALUES (?, 'artisan', ?, ?, ?)
+    `).run(
+      devis.id,
+      devis.nom_artisan || devis.nom_entreprise,
+      destEmail,
+      `📧 Devis envoyé par email à ${destEmail}. Objet: ${sujet || `Devis ${devis.numero}`}`
+    );
+
+    res.json({
+      success: true,
+      message: `Devis envoyé par email avec succès à ${destEmail} !`,
+      statut: updatedStatut
+    });
+  } catch (err) {
+    console.error('Send email error:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'envoi de l\'email.' });
   }
 });
 

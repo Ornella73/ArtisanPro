@@ -34,7 +34,7 @@ async function runTests() {
     assert.strictEqual(computed.total_ht_cents, 15000, 'Total HT doit égaler 15000 centimes (150.00 €)');
     assert.strictEqual(computed.total_tva_cents, 3000, 'Total TVA doit égaler 3000 centimes (30.00 €)');
     assert.strictEqual(computed.total_ttc_cents, 18000, 'Total TTC doit égaler 18000 centimes (180.00 €)');
-    assert.strictEqual(formatCentsToEuros(18000), '180,00 €', 'Format d\'affichage en euros valide');
+    assert.strictEqual(formatCentsToEuros(18000), '180,00 €', 'Format d\'affichage en euros valide');
     console.log('  ✅ Calcul des montants en centimes validé avec précision absolue.');
 
     // -----------------------------------------------------------------

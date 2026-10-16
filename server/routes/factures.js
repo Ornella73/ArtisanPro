@@ -1,9 +1,127 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const db = require('../database');
 const { authenticateToken } = require('../middleware/auth');
+const { calculateDocumentTotals } = require('../services/calculator');
 
 router.use(authenticateToken);
+
+// Helper to generate next Facture Number (e.g. FACT-2026-0001)
+function generateFactureNumero(artisanId) {
+  const year = new Date().getFullYear();
+  const countRow = db.prepare(`
+    SELECT COUNT(*) as count FROM factures 
+    WHERE artisan_id = ? AND numero LIKE ?
+  `).get(artisanId, `FACT-${year}-%`);
+
+  const nextNum = (countRow.count + 1).toString().padStart(4, '0');
+  return `FACT-${year}-${nextNum}`;
+}
+
+// Helper to resolve or auto-create client in database
+function resolveClientId(artisanId, body) {
+  const { client_id, new_client } = body;
+  if (new_client && (new_client.nom || '').trim()) {
+    const nom = new_client.nom.trim();
+    const email = (new_client.email || '').trim() || null;
+    const telephone = (new_client.telephone || '').trim() || null;
+    const adresse = (new_client.adresse || '').trim() || null;
+
+    const res = db.prepare(`
+      INSERT INTO clients (artisan_id, nom, email, telephone, adresse)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(artisanId, nom, email, telephone, adresse);
+    return res.lastInsertRowid;
+  }
+
+  if (!client_id || client_id === 'new') {
+    throw new Error('Le client est obligatoire. Sélectionnez un client ou renseignez le nouveau client.');
+  }
+
+  const client = db.prepare('SELECT id FROM clients WHERE id = ? AND artisan_id = ?').get(client_id, artisanId);
+  if (!client) {
+    throw new Error('Client non trouvé ou accès refusé.');
+  }
+  return client.id;
+}
+
+// POST /api/factures - Create direct invoice with automatic client registration
+router.post('/', (req, res) => {
+  try {
+    const { client_id, new_client, lignes } = req.body;
+
+    let targetClientId;
+    try {
+      targetClientId = resolveClientId(req.artisan.id, req.body);
+    } catch (clientErr) {
+      return res.status(400).json({ error: clientErr.message });
+    }
+
+    if (!Array.isArray(lignes) || lignes.length === 0) {
+      return res.status(400).json({ error: 'La facture doit contenir au moins une ligne.' });
+    }
+
+    const computed = calculateDocumentTotals(lignes);
+    const numero = generateFactureNumero(req.artisan.id);
+    const publicToken = crypto.randomUUID();
+
+    const factureId = db.transaction(() => {
+      const insertRes = db.prepare(`
+        INSERT INTO factures (
+          artisan_id, client_id, devis_id, numero, statut,
+          total_ht_cents, total_tva_cents, total_ttc_cents, public_token
+        )
+        VALUES (?, ?, NULL, ?, 'emise', ?, ?, ?, ?)
+      `).run(
+        req.artisan.id,
+        targetClientId,
+        numero,
+        computed.total_ht_cents,
+        computed.total_tva_cents,
+        computed.total_ttc_cents,
+        publicToken
+      );
+
+      const fId = insertRes.lastInsertRowid;
+
+      const lineStmt = db.prepare(`
+        INSERT INTO facture_lignes (
+          facture_id, designation, quantite, prix_unitaire_cents, taux_tva,
+          total_ht_cents, total_tva_cents, total_ttc_cents
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      for (const line of computed.lignes) {
+        lineStmt.run(
+          fId,
+          line.designation,
+          line.quantite,
+          line.prix_unitaire_cents,
+          line.taux_tva,
+          line.total_ht_cents,
+          line.total_tva_cents,
+          line.total_ttc_cents
+        );
+      }
+
+      return fId;
+    })();
+
+    const createdFacture = db.prepare('SELECT * FROM factures WHERE id = ?').get(factureId);
+    const createdLignes = db.prepare('SELECT * FROM facture_lignes WHERE facture_id = ?').all(factureId);
+
+    res.status(201).json({
+      message: 'Facture créée avec succès.',
+      ...createdFacture,
+      lignes: createdLignes
+    });
+  } catch (err) {
+    console.error('Create facture error:', err);
+    res.status(500).json({ error: 'Erreur lors de la création de la facture.' });
+  }
+});
 
 // GET /api/factures - List all invoices for artisan with payments overview
 router.get('/', (req, res) => {

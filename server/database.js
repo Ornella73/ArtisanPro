@@ -123,9 +123,29 @@ function initSchema() {
       FOREIGN KEY (facture_id) REFERENCES factures(id) ON DELETE CASCADE,
       FOREIGN KEY (artisan_id) REFERENCES artisans(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS devis_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      devis_id INTEGER NOT NULL,
+      auteur TEXT NOT NULL DEFAULT 'client',
+      nom_expediteur TEXT,
+      email TEXT,
+      telephone TEXT,
+      message TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (devis_id) REFERENCES devis(id) ON DELETE CASCADE
+    );
   `);
+
+  try {
+    db.exec(`ALTER TABLE devis ADD COLUMN date_acceptation DATETIME`);
+  } catch (_) {}
+  try {
+    db.exec(`ALTER TABLE devis ADD COLUMN signature_client TEXT`);
+  } catch (_) {}
 }
 
 initSchema();
 
 module.exports = db;
+

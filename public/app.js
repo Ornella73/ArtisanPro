@@ -312,6 +312,10 @@ async function loadDevis() {
               </button>
             ` : ''}
 
+            <button class="btn btn-terracotta btn-sm" onclick="openEmailModal(${devis.id})" title="Envoyer directement par email au client">
+              <i class="ri-mail-send-line"></i> Envoyer
+            </button>
+
             <button class="btn btn-outline btn-sm" onclick="openShareModal('devis', '${devis.public_token}', ${devis.id})" title="Lien public">
               <i class="ri-share-line"></i>
             </button>
@@ -327,23 +331,89 @@ async function loadDevis() {
   } catch (err) {}
 }
 
+// Helper for inline client creation in modals
+function toggleNewClientInline(prefix) {
+  const box = document.getElementById(`${prefix}-new-client-box`);
+  const select = document.getElementById(`${prefix}-client-id`);
+  if (!box || !select) return;
+
+  if (box.style.display === 'none' || !box.style.display) {
+    box.style.display = 'block';
+    select.value = 'new';
+    const firstInput = document.getElementById(`${prefix}-new-client-nom`);
+    if (firstInput) firstInput.focus();
+  } else {
+    box.style.display = 'none';
+    if (select.value === 'new') select.value = select.options.length > 2 ? select.options[2].value : '';
+  }
+}
+
+function handleClientDropdownChange(prefix) {
+  const select = document.getElementById(`${prefix}-client-id`);
+  const box = document.getElementById(`${prefix}-new-client-box`);
+  if (!select || !box) return;
+
+  if (select.value === 'new') {
+    box.style.display = 'block';
+    const firstInput = document.getElementById(`${prefix}-new-client-nom`);
+    if (firstInput) firstInput.focus();
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+async function populateClientsDropdown(selectId = 'devis-client-id') {
+  const clients = await api('/clients');
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  select.innerHTML = '';
+
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.innerText = '-- Choisir un client existant --';
+  select.appendChild(defaultOpt);
+
+  const newOpt = document.createElement('option');
+  newOpt.value = 'new';
+  newOpt.innerText = '➕ + Nouveau client (enregistrer automatiquement)';
+  select.appendChild(newOpt);
+
+  clients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.innerText = c.nom + (c.email ? ` (${c.email})` : '');
+    select.appendChild(opt);
+  });
+}
+
+// -----------------------------------------------------------------
+// DEVIS ACTIONS & RESPONSIVE LINE ITEMS
+// -----------------------------------------------------------------
 async function openNewDevisModal() {
-  await populateClientsDropdown();
+  await populateClientsDropdown('devis-client-id');
   document.getElementById('devis-modal-title').innerText = 'Créer un devis';
   document.getElementById('devis-id').value = '';
   document.getElementById('devis-statut').value = 'brouillon';
   
-  const linesBody = document.getElementById('devis-lines-body');
-  linesBody.innerHTML = '';
+  // Reset new client box
+  const box = document.getElementById('devis-new-client-box');
+  if (box) box.style.display = 'none';
+  ['nom', 'email', 'tel', 'adresse'].forEach(field => {
+    const el = document.getElementById(`devis-new-client-${field}`);
+    if (el) el.value = '';
+  });
+
+  const linesContainer = document.getElementById('devis-lines-container');
+  linesContainer.innerHTML = '';
   addDevisLine('Installation tableau électrique', 1, 150.00);
   addDevisLine('Disjoncteur 20A', 2, 35.00);
-  recalculateModalTotals();
+  recalculateModalTotals('devis');
 
   openModal('devis-modal');
 }
 
 async function editDevis(id) {
-  await populateClientsDropdown();
+  await populateClientsDropdown('devis-client-id');
   try {
     const data = await api(`/devis/${id}`);
     
@@ -352,52 +422,60 @@ async function editDevis(id) {
     document.getElementById('devis-client-id').value = data.client_id;
     document.getElementById('devis-statut').value = data.statut === 'remplace' || data.statut === 'converti' ? 'brouillon' : data.statut;
 
-    const linesBody = document.getElementById('devis-lines-body');
-    linesBody.innerHTML = '';
+    const box = document.getElementById('devis-new-client-box');
+    if (box) box.style.display = 'none';
+
+    const linesContainer = document.getElementById('devis-lines-container');
+    linesContainer.innerHTML = '';
 
     data.lignes.forEach(line => {
       addDevisLine(line.designation, line.quantite, line.prix_unitaire_cents / 100);
     });
 
-    recalculateModalTotals();
+    recalculateModalTotals('devis');
     openModal('devis-modal');
   } catch (err) {}
 }
 
 function addDevisLine(designation = '', quantite = 1, prixUnitaireEuro = '') {
-  const tbody = document.getElementById('devis-lines-body');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td style="padding: 6px;">
-      <input type="text" class="form-input line-desc" value="${escapeHtml(designation)}" placeholder="Ex. Câblage (30m)" required oninput="recalculateModalTotals()">
-    </td>
-    <td style="padding: 6px;">
-      <input type="number" step="0.1" class="form-input line-qty" value="${quantite}" min="0.1" required oninput="recalculateModalTotals()">
-    </td>
-    <td style="padding: 6px;">
-      <input type="number" step="0.01" class="form-input line-price" value="${prixUnitaireEuro}" placeholder="100.00" required oninput="recalculateModalTotals()">
-    </td>
-    <td style="padding: 6px; text-align: center;">
-      <button type="button" class="btn btn-danger btn-sm" onclick="removeDevisLine(this)">
-        <i class="ri-delete-bin-line"></i>
-      </button>
-    </td>
+  const container = document.getElementById('devis-lines-container');
+  const div = document.createElement('div');
+  div.className = 'line-item-row';
+  div.innerHTML = `
+    <div class="line-item-desc">
+      <input type="text" class="form-input line-desc" value="${escapeHtml(designation)}" placeholder="Désignation des travaux ou matériel" required oninput="recalculateModalTotals('devis')">
+    </div>
+    <div class="line-mobile-subrow">
+      <div class="line-item-qty">
+        <input type="number" step="0.1" class="form-input line-qty" value="${quantite}" min="0.1" placeholder="Qté" required oninput="recalculateModalTotals('devis')">
+      </div>
+      <div class="line-item-price">
+        <input type="number" step="0.01" class="form-input line-price" value="${prixUnitaireEuro}" placeholder="P.U. HT (€)" required oninput="recalculateModalTotals('devis')">
+      </div>
+      <div class="line-del-btn">
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeDevisLine(this)" title="Supprimer cette ligne">
+          <i class="ri-delete-bin-line"></i>
+        </button>
+      </div>
+    </div>
   `;
-  tbody.appendChild(tr);
+  container.appendChild(div);
+  recalculateModalTotals('devis');
 }
 
 function removeDevisLine(btn) {
-  const tbody = document.getElementById('devis-lines-body');
-  if (tbody.children.length > 1) {
-    btn.closest('tr').remove();
-    recalculateModalTotals();
+  const container = document.getElementById('devis-lines-container');
+  if (container.children.length > 1) {
+    btn.closest('.line-item-row').remove();
+    recalculateModalTotals('devis');
   } else {
     alert('Le devis doit contenir au moins une ligne.');
   }
 }
 
-function recalculateModalTotals() {
-  const rows = document.querySelectorAll('#devis-lines-body tr');
+function recalculateModalTotals(prefix = 'devis') {
+  const containerId = prefix === 'facture' ? 'facture-lines-container' : 'devis-lines-container';
+  const rows = document.querySelectorAll(`#${containerId} .line-item-row`);
   let totalHTCents = 0;
   let totalTVACents = 0;
 
@@ -415,19 +493,44 @@ function recalculateModalTotals() {
 
   const totalTTCCents = totalHTCents + totalTVACents;
 
-  document.getElementById('modal-total-ht').innerText = formatCents(totalHTCents);
-  document.getElementById('modal-total-tva').innerText = formatCents(totalTVACents);
-  document.getElementById('modal-total-ttc').innerText = formatCents(totalTTCCents);
+  const targetPrefix = prefix === 'facture' ? 'facture-modal-total' : 'modal-total';
+  const elHT = document.getElementById(`${targetPrefix}-ht`);
+  const elTVA = document.getElementById(`${targetPrefix}-tva`);
+  const elTTC = document.getElementById(`${targetPrefix}-ttc`);
+
+  if (elHT) elHT.innerText = formatCents(totalHTCents);
+  if (elTVA) elTVA.innerText = formatCents(totalTVACents);
+  if (elTTC) elTTC.innerText = formatCents(totalTTCCents);
 }
 
 async function saveDevis(e) {
   e.preventDefault();
 
   const id = document.getElementById('devis-id').value;
-  const client_id = parseInt(document.getElementById('devis-client-id').value);
+  const clientSelectValue = document.getElementById('devis-client-id').value;
   const statut = document.getElementById('devis-statut').value;
 
-  const rows = document.querySelectorAll('#devis-lines-body tr');
+  let client_id = null;
+  let new_client = null;
+
+  if (clientSelectValue === 'new' || !clientSelectValue) {
+    const nom = document.getElementById('devis-new-client-nom').value.trim();
+    if (!nom) {
+      alert('Veuillez renseigner le nom du nouveau client ou sélectionner un client existant.');
+      document.getElementById('devis-new-client-nom').focus();
+      return;
+    }
+    new_client = {
+      nom,
+      email: document.getElementById('devis-new-client-email').value.trim(),
+      telephone: document.getElementById('devis-new-client-tel').value.trim(),
+      adresse: document.getElementById('devis-new-client-adresse').value.trim()
+    };
+  } else {
+    client_id = parseInt(clientSelectValue);
+  }
+
+  const rows = document.querySelectorAll('#devis-lines-container .line-item-row');
   const lignes = [];
 
   rows.forEach(row => {
@@ -448,16 +551,18 @@ async function saveDevis(e) {
 
   try {
     let resData;
+    const payload = { client_id, new_client, lignes, statut };
+
     if (id) {
       resData = await api(`/devis/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ client_id, lignes, statut })
+        body: JSON.stringify(payload)
       });
       if (resData.is_new_version) alert(resData.message);
     } else {
       resData = await api('/devis', {
         method: 'POST',
-        body: JSON.stringify({ client_id, lignes, statut })
+        body: JSON.stringify(payload)
       });
     }
 
@@ -465,6 +570,211 @@ async function saveDevis(e) {
     loadDevis();
     if (state.currentView === 'dashboard') loadDashboard();
   } catch (err) {}
+}
+
+// -----------------------------------------------------------------
+// DIRECT FACTURES CREATION (with auto client registration)
+// -----------------------------------------------------------------
+async function openNewFactureModal() {
+  await populateClientsDropdown('facture-client-id');
+  const dateInput = document.getElementById('facture-date-emission');
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+  const box = document.getElementById('facture-new-client-box');
+  if (box) box.style.display = 'none';
+  ['nom', 'email', 'tel', 'adresse'].forEach(field => {
+    const el = document.getElementById(`facture-new-client-${field}`);
+    if (el) el.value = '';
+  });
+
+  const linesContainer = document.getElementById('facture-lines-container');
+  linesContainer.innerHTML = '';
+  addFactureLine('Prestation de maintenance électrique', 1, 250.00);
+  recalculateModalTotals('facture');
+
+  openModal('facture-modal');
+}
+
+function addFactureLine(designation = '', quantite = 1, prixUnitaireEuro = '') {
+  const container = document.getElementById('facture-lines-container');
+  const div = document.createElement('div');
+  div.className = 'line-item-row';
+  div.innerHTML = `
+    <div class="line-item-desc">
+      <input type="text" class="form-input line-desc" value="${escapeHtml(designation)}" placeholder="Désignation des travaux ou fournitures" required oninput="recalculateModalTotals('facture')">
+    </div>
+    <div class="line-mobile-subrow">
+      <div class="line-item-qty">
+        <input type="number" step="0.1" class="form-input line-qty" value="${quantite}" min="0.1" placeholder="Qté" required oninput="recalculateModalTotals('facture')">
+      </div>
+      <div class="line-item-price">
+        <input type="number" step="0.01" class="form-input line-price" value="${prixUnitaireEuro}" placeholder="P.U. HT (€)" required oninput="recalculateModalTotals('facture')">
+      </div>
+      <div class="line-del-btn">
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeFactureLine(this)" title="Supprimer">
+          <i class="ri-delete-bin-line"></i>
+        </button>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  recalculateModalTotals('facture');
+}
+
+function removeFactureLine(btn) {
+  const container = document.getElementById('facture-lines-container');
+  if (container.children.length > 1) {
+    btn.closest('.line-item-row').remove();
+    recalculateModalTotals('facture');
+  } else {
+    alert('La facture doit contenir au moins une ligne.');
+  }
+}
+
+async function saveDirectFacture(e) {
+  e.preventDefault();
+
+  const clientSelectValue = document.getElementById('facture-client-id').value;
+  const date_emission = document.getElementById('facture-date-emission').value;
+
+  let client_id = null;
+  let new_client = null;
+
+  if (clientSelectValue === 'new' || !clientSelectValue) {
+    const nom = document.getElementById('facture-new-client-nom').value.trim();
+    if (!nom) {
+      alert('Veuillez renseigner le nom du nouveau client ou sélectionner un client existant.');
+      document.getElementById('facture-new-client-nom').focus();
+      return;
+    }
+    new_client = {
+      nom,
+      email: document.getElementById('facture-new-client-email').value.trim(),
+      telephone: document.getElementById('facture-new-client-tel').value.trim(),
+      adresse: document.getElementById('facture-new-client-adresse').value.trim()
+    };
+  } else {
+    client_id = parseInt(clientSelectValue);
+  }
+
+  const rows = document.querySelectorAll('#facture-lines-container .line-item-row');
+  const lignes = [];
+
+  rows.forEach(row => {
+    const designation = row.querySelector('.line-desc').value.trim();
+    const quantite = parseFloat(row.querySelector('.line-qty').value);
+    const priceEuro = parseFloat(row.querySelector('.line-price').value);
+    const prix_unitaire_cents = Math.round(priceEuro * 100);
+
+    if (designation && quantite > 0 && prix_unitaire_cents >= 0) {
+      lignes.push({ designation, quantite, prix_unitaire_cents, taux_tva: 20 });
+    }
+  });
+
+  if (lignes.length === 0) {
+    alert('Veuillez renseigner les lignes de la facture.');
+    return;
+  }
+
+  try {
+    const res = await api('/factures', {
+      method: 'POST',
+      body: JSON.stringify({ client_id, new_client, lignes, date_emission })
+    });
+
+    closeModal('facture-modal');
+    alert(`Facture ${res.numero} créée avec succès !`);
+    loadFactures();
+    if (state.currentView === 'dashboard') loadDashboard();
+  } catch (err) {}
+}
+
+// -----------------------------------------------------------------
+// EMAIL SENDING MODAL & ACTIONS
+// -----------------------------------------------------------------
+let currentEmailData = null;
+
+async function openEmailModal(devisId) {
+  try {
+    const devis = await api(`/devis/${devisId}`);
+    const publicUrl = `${window.location.origin}/public/devis/${devis.public_token}`;
+    const artisanName = (state.artisan && state.artisan.nom_artisan) || 'Votre artisan';
+    const company = (state.artisan && state.artisan.nom_entreprise) || 'ArtiFlow';
+
+    currentEmailData = {
+      id: devis.id,
+      numero: devis.numero,
+      client_nom: devis.client_nom,
+      client_email: devis.client_email || '',
+      total_ttc: formatCents(devis.total_ttc_cents),
+      publicUrl,
+      artisanName,
+      company
+    };
+
+    document.getElementById('email-devis-id').value = devis.id;
+    document.getElementById('email-public-link').value = publicUrl;
+    document.getElementById('email-recipient').value = devis.client_email || '';
+    document.getElementById('email-subject').value = `Devis ${devis.numero} - ${company}`;
+
+    const defaultBody = `Bonjour ${devis.client_nom || ''},
+
+Veuillez trouver ci-joint votre devis n° ${devis.numero} d'un montant de ${formatCents(devis.total_ttc_cents)} TTC.
+
+Vous pouvez le consulter en ligne, télécharger le PDF ou le valider directement en un clic en suivant ce lien sécurisé :
+${publicUrl}
+
+N'hésitez pas à nous contacter ou à poser vos questions directement depuis la page du devis.
+
+Cordialement,
+${artisanName}
+${company}
+${(state.artisan && state.artisan.telephone) ? `Tél : ${state.artisan.telephone}` : ''}`;
+
+    document.getElementById('email-body').value = defaultBody;
+    openModal('email-modal');
+  } catch (err) {}
+}
+
+async function sendDevisEmail(e) {
+  e.preventDefault();
+  const devisId = document.getElementById('email-devis-id').value;
+  const email = document.getElementById('email-recipient').value.trim();
+  const sujet = document.getElementById('email-subject').value.trim();
+  const message = document.getElementById('email-body').value.trim();
+
+  const btn = document.getElementById('btn-submit-email');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="ri-loader-4-line ri-spin"></i> Envoi...`;
+  }
+
+  try {
+    const res = await api(`/devis/${devisId}/send-email`, {
+      method: 'POST',
+      body: JSON.stringify({ email, sujet, message })
+    });
+
+    closeModal('email-modal');
+    alert(res.message || 'Devis envoyé par email au client !');
+    loadDevis();
+    if (state.currentView === 'dashboard') loadDashboard();
+  } catch (err) {
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="ri-send-plane-fill"></i> Envoyer au client`;
+    }
+  }
+}
+
+function openMailtoClient() {
+  const email = document.getElementById('email-recipient').value.trim();
+  const subject = encodeURIComponent(document.getElementById('email-subject').value.trim());
+  const body = encodeURIComponent(document.getElementById('email-body').value.trim());
+
+  const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
+  window.open(mailtoUrl, '_blank');
 }
 
 async function convertDevisToFacture(devisId) {
@@ -731,40 +1041,132 @@ async function loadPublicView(path) {
           <span style="color: var(--text-muted);">${escapeHtml(c.adresse || '')}</span>
         </div>
 
-        <table class="custom-table" style="margin-bottom: 24px;">
-          <thead>
-            <tr>
-              <th>Désignation</th>
-              <th style="text-align: center;">Qté</th>
-              <th style="text-align: right;">P.U. HT</th>
-              <th style="text-align: right;">Total HT</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.lignes.map(l => `
+        <div class="table-responsive">
+          <table class="custom-table" style="margin-bottom: 24px;">
+            <thead>
               <tr>
-                <td>${escapeHtml(l.designation)}</td>
-                <td style="text-align: center;">${l.quantite}</td>
-                <td style="text-align: right;">${formatCents(l.prix_unitaire_cents)}</td>
-                <td style="text-align: right;">${formatCents(l.total_ht_cents)}</td>
+                <th>Désignation</th>
+                <th style="text-align: center;">Qté</th>
+                <th style="text-align: right;">P.U. HT</th>
+                <th style="text-align: right;">Total HT</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${data.lignes.map(l => `
+                <tr>
+                  <td>${escapeHtml(l.designation)}</td>
+                  <td style="text-align: center;">${l.quantite}</td>
+                  <td style="text-align: right;">${formatCents(l.prix_unitaire_cents)}</td>
+                  <td style="text-align: right;">${formatCents(l.total_ht_cents)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
 
-        <div style="background: var(--bg-input); padding: 16px; border-radius: var(--radius-md); margin-left: auto; width: 280px;">
+        <div class="totals-box">
           <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Total HT :</span><span>${formatCents(d.total_ht_cents)}</span></div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>TVA (20%) :</span><span>${formatCents(d.total_tva_cents)}</span></div>
-          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; color: var(--artiflow-navy); border-top: 1px solid var(--border-color); padding-top: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; color: var(--text-total-ttc); border-top: 1px solid var(--border-color); padding-top: 8px;">
             <span>Total TTC :</span><span>${formatCents(d.total_ttc_cents)}</span>
           </div>
         </div>
 
-        <div style="margin-top: 32px; text-align: center;">
-          <a href="/api/public/devis/${token}/pdf" target="_blank" class="btn btn-terracotta">
-            <i class="ri-file-pdf-line"></i> Télécharger en PDF
-          </a>
-        </div>
+        <!-- CLIENT INTERACTIVE ACTION BOX (Accept & Ask for Info) -->
+        ${d.statut === 'accepte' ? `
+          <div class="public-banner-accepted" style="margin-top: 32px;">
+            <i class="ri-checkbox-circle-fill" style="font-size: 24px;"></i>
+            <div>
+              <strong>Devis accepté et validé !</strong><br>
+              <span style="font-size: 13px; font-weight: normal;">
+                Ce devis a été accepté le ${d.date_acceptation ? new Date(d.date_acceptation).toLocaleDateString('fr-FR') : 'récemment'}${d.signature_client ? ` par ${escapeHtml(d.signature_client)}` : ''}. L'artisan en a été notifié.
+              </span>
+            </div>
+          </div>
+        ` : (d.statut !== 'remplace' && d.statut !== 'converti') ? `
+          <div class="public-actions-card" id="client-decision-card">
+            <h4>Réponse au devis</h4>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">
+              Vous pouvez valider ce devis directement en ligne ou adresser une demande de renseignements à votre artisan.
+            </p>
+
+            <div class="public-actions-btn-row">
+              <button class="btn btn-terracotta" onclick="showAcceptPrompt('${token}')">
+                <i class="ri-check-double-line"></i> Accepter et signer le devis
+              </button>
+              <button class="btn btn-outline" onclick="showQuestionPrompt()">
+                <i class="ri-question-answer-line"></i> Demander des informations supplémentaires
+              </button>
+              <a href="/api/public/devis/${token}/pdf" target="_blank" class="btn btn-outline">
+                <i class="ri-file-pdf-line"></i> Télécharger en PDF
+              </a>
+            </div>
+
+            <!-- Inline Accept Form -->
+            <div id="client-accept-form-box" style="display: none; background: var(--bg-card); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--artiflow-mint); margin-top: 14px;">
+              <h5 style="font-size: 15px; font-weight: 800; margin-bottom: 8px; color: var(--badge-green-text);">Confirmation d'acceptation du devis</h5>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">En confirmant, vous validez les prestations et les montants indiqués dans ce devis.</p>
+              <div class="form-group">
+                <label>Nom et prénom du signataire *</label>
+                <input type="text" id="public-signer-name" class="form-input" value="${escapeHtml(c.nom)}" required>
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('client-accept-form-box').style.display = 'none'">Annuler</button>
+                <button type="button" class="btn btn-terracotta btn-sm" id="btn-confirm-accept" onclick="confirmAcceptPublicDevis('${token}')">
+                  <i class="ri-check-line"></i> Confirmer la validation
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Question Form -->
+            <div id="client-question-form-box" style="display: none; background: var(--bg-card); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-top: 14px;">
+              <h5 style="font-size: 15px; font-weight: 800; margin-bottom: 8px;">Demande d'informations à l'artisan</h5>
+              <div class="form-group">
+                <label>Votre question ou remarque *</label>
+                <textarea id="public-question-text" class="form-input" rows="4" placeholder="Ex: Bonjour, quelles seraient les disponibilités pour démarrer le chantier ?"></textarea>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Votre nom</label>
+                  <input type="text" id="public-question-nom" class="form-input" value="${escapeHtml(c.nom)}">
+                </div>
+                <div class="form-group">
+                  <label>Votre email ou téléphone</label>
+                  <input type="text" id="public-question-contact" class="form-input" value="${escapeHtml(c.email || c.telephone || '')}">
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('client-question-form-box').style.display = 'none'">Annuler</button>
+                <button type="button" class="btn btn-navy btn-sm" id="btn-send-question" onclick="submitPublicQuestion('${token}')">
+                  <i class="ri-send-plane-fill"></i> Transmettre à l'artisan
+                </button>
+              </div>
+            </div>
+
+          </div>
+        ` : `
+          <div style="margin-top: 32px; text-align: center;">
+            <a href="/api/public/devis/${token}/pdf" target="_blank" class="btn btn-terracotta">
+              <i class="ri-file-pdf-line"></i> Télécharger en PDF
+            </a>
+          </div>
+        `}
+
+        <!-- Conversation / Messages Thread -->
+        ${data.messages && data.messages.length > 0 ? `
+          <div class="public-messages-list">
+            <h5 style="font-size: 14px; font-weight: 800; color: var(--text-muted); margin-top: 16px;">Échanges récents :</h5>
+            ${data.messages.map(m => `
+              <div class="public-message-bubble">
+                <div class="author">
+                  ${m.auteur === 'client' ? '👤 ' + (escapeHtml(m.nom_expediteur) || 'Vous (Client)') : '👷 ' + (escapeHtml(m.nom_expediteur) || 'Artisan')} 
+                  <span style="font-weight: normal; color: var(--text-muted); font-size: 11px;"> • ${new Date(m.created_at).toLocaleDateString('fr-FR')}</span>
+                </div>
+                <div>${escapeHtml(m.message)}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       `;
     } else {
       const f = data.facture;
@@ -879,3 +1281,113 @@ function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// -----------------------------------------------------------------
+// PUBLIC CLIENT ACTIONS (Accept & Ask Info)
+// -----------------------------------------------------------------
+function showAcceptPrompt(token) {
+  const box = document.getElementById('client-accept-form-box');
+  const qBox = document.getElementById('client-question-form-box');
+  if (qBox) qBox.style.display = 'none';
+  if (box) {
+    box.style.display = 'block';
+    const input = document.getElementById('public-signer-name');
+    if (input) input.focus();
+  }
+}
+
+function showQuestionPrompt() {
+  const box = document.getElementById('client-question-form-box');
+  const aBox = document.getElementById('client-accept-form-box');
+  if (aBox) aBox.style.display = 'none';
+  if (box) {
+    box.style.display = 'block';
+    const input = document.getElementById('public-question-text');
+    if (input) input.focus();
+  }
+}
+
+async function confirmAcceptPublicDevis(token) {
+  const signerInput = document.getElementById('public-signer-name');
+  const nom_signataire = signerInput ? signerInput.value.trim() : '';
+
+  if (!nom_signataire) {
+    alert('Veuillez renseigner votre nom pour confirmer la validation.');
+    if (signerInput) signerInput.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-confirm-accept');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="ri-loader-4-line ri-spin"></i> Validation en cours...`;
+  }
+
+  try {
+    const res = await fetch(`/api/public/devis/${token}/accepter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom_signataire })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de la validation.');
+
+    alert(data.message || 'Devis accepté avec succès !');
+    loadPublicView(window.location.pathname);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="ri-check-line"></i> Confirmer la validation`;
+    }
+  }
+}
+
+async function submitPublicQuestion(token) {
+  const qInput = document.getElementById('public-question-text');
+  const message = qInput ? qInput.value.trim() : '';
+
+  if (!message) {
+    alert('Veuillez formuler votre question ou demande.');
+    if (qInput) qInput.focus();
+    return;
+  }
+
+  const nomInput = document.getElementById('public-question-nom');
+  const contactInput = document.getElementById('public-question-contact');
+  const nom = nomInput ? nomInput.value.trim() : '';
+  const contact = contactInput ? contactInput.value.trim() : '';
+
+  const btn = document.getElementById('btn-send-question');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="ri-loader-4-line ri-spin"></i> Envoi en cours...`;
+  }
+
+  try {
+    const res = await fetch(`/api/public/devis/${token}/demande-info`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        nom,
+        email: contact.includes('@') ? contact : null,
+        telephone: !contact.includes('@') ? contact : null
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de l\'envoi.');
+
+    alert(data.message || 'Votre message a bien été transmis à l\'artisan !');
+    loadPublicView(window.location.pathname);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="ri-send-plane-fill"></i> Transmettre à l'artisan`;
+    }
+  }
+}
+

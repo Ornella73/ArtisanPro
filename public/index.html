@@ -164,20 +164,22 @@
             <button class="btn btn-outline btn-sm" onclick="switchView('devis')">Voir tout</button>
           </div>
 
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th>Document</th>
-                <th>Client</th>
-                <th>Montant TTC</th>
-                <th>Statut</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody id="dashboard-recent-table">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Client</th>
+                  <th>Montant TTC</th>
+                  <th>Statut</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-recent-table">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -191,50 +193,59 @@
             </button>
           </div>
 
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th>N° Devis</th>
-                <th>Version</th>
-                <th>Client</th>
-                <th>Total HT</th>
-                <th>Total TTC</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="devis-table-body">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>N° Devis</th>
+                  <th>Version</th>
+                  <th>Client</th>
+                  <th>Total HT</th>
+                  <th>Total TTC</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="devis-table-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- VIEW 3: FACTURES -->
       <section id="view-factures" class="view-section" style="display: none;">
         <div class="content-card">
-          <div class="card-header-row">
-            <h3>Liste de vos factures</h3>
-            <span class="status-badge envoye"><i class="ri-lock-2-line"></i> Verrouillage définitif actif</span>
+          <div class="card-header-row" style="flex-wrap: wrap; gap: 10px;">
+            <div>
+              <h3>Liste de vos factures</h3>
+              <span class="status-badge envoye" style="margin-top: 4px;"><i class="ri-lock-2-line"></i> Verrouillage actif</span>
+            </div>
+            <button class="btn btn-navy" onclick="openNewFactureModal()">
+              <i class="ri-add-line"></i> Créer une facture
+            </button>
           </div>
 
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th>N° Facture</th>
-                <th>Devis d'origine</th>
-                <th>Client</th>
-                <th>Total TTC</th>
-                <th>Paiements reçus</th>
-                <th>Solde restant</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="factures-table-body">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>N° Facture</th>
+                  <th>Devis d'origine</th>
+                  <th>Client</th>
+                  <th>Total TTC</th>
+                  <th>Paiements reçus</th>
+                  <th>Solde restant</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="factures-table-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -253,22 +264,24 @@
             <input type="text" id="client-search-input" class="form-input" placeholder="🔍 Rechercher un client par nom..." oninput="filterClientsList()">
           </div>
 
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th>Nom / Raison sociale</th>
-                <th>Email</th>
-                <th>Téléphone</th>
-                <th>Adresse</th>
-                <th>Devis</th>
-                <th>Factures</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="clients-table-body">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Nom / Raison sociale</th>
+                  <th>Email</th>
+                  <th>Téléphone</th>
+                  <th>Adresse</th>
+                  <th>Devis</th>
+                  <th>Factures</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="clients-table-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -368,8 +381,13 @@
 
         <div class="form-grid">
           <div class="form-group">
-            <label>Client *</label>
-            <select id="devis-client-id" class="form-input" required>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="margin-bottom: 0;">Client *</label>
+              <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="toggleNewClientInline('devis')">
+                <i class="ri-user-add-line"></i> + Nouveau client
+              </button>
+            </div>
+            <select id="devis-client-id" class="form-input" required onchange="handleClientDropdownChange('devis')">
               <!-- Filled dynamically -->
             </select>
           </div>
@@ -383,36 +401,60 @@
           </div>
         </div>
 
-        <div style="margin: 20px 0 10px 0; display: flex; justify-content: space-between; align-items: center;">
-          <h4 style="font-size: 15px; font-weight: 800;">Lignes du devis</h4>
-          <button type="button" class="btn btn-outline btn-sm" onclick="addDevisLine()">
-            <i class="ri-add-line"></i> Ajouter une ligne
-          </button>
+        <!-- Inline New Client Box (automatic registration) -->
+        <div id="devis-new-client-box" class="new-client-box" style="display: none;">
+          <div class="new-client-box-title">
+            <i class="ri-user-add-line"></i> Informations du nouveau client (enregistré automatiquement)
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nom ou Raison sociale *</label>
+              <input type="text" id="devis-new-client-nom" class="form-input" placeholder="Ex: SARL Batir ou Jean Dupont">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="devis-new-client-email" class="form-input" placeholder="client@exemple.fr">
+            </div>
+            <div class="form-group">
+              <label>Téléphone</label>
+              <input type="text" id="devis-new-client-tel" class="form-input" placeholder="06 12 34 56 78">
+            </div>
+            <div class="form-group">
+              <label>Adresse complète</label>
+              <input type="text" id="devis-new-client-adresse" class="form-input" placeholder="10 Rue de Paris, 75001 Paris">
+            </div>
+          </div>
         </div>
 
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
-          <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); text-align: left; font-size: 12px; color: var(--text-muted);">
-              <th style="padding: 8px; width: 45%;">Désignation</th>
-              <th style="padding: 8px; width: 15%;">Qté</th>
-              <th style="padding: 8px; width: 25%;">P.U. HT (€)</th>
-              <th style="padding: 8px; width: 15%; text-align: center;">Action</th>
-            </tr>
-          </thead>
-          <tbody id="devis-lines-body">
-            <!-- Rendered dynamically -->
-          </tbody>
-        </table>
+        <div style="margin: 20px 0 10px 0;">
+          <h4 style="font-size: 15px; font-weight: 800;">Lignes du devis</h4>
+        </div>
+
+        <div class="line-header-row">
+          <div>Désignation</div>
+          <div>Qté</div>
+          <div>P.U. HT (€)</div>
+          <div style="text-align: center;">Action</div>
+        </div>
+
+        <div id="devis-lines-container" class="lines-editor-list">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Button situated at the bottom of the last line -->
+        <button type="button" class="btn-add-line-bottom" onclick="addDevisLine()">
+          <i class="ri-add-line"></i> Ajouter une ligne
+        </button>
 
         <!-- Totals box -->
-        <div style="background: var(--bg-input); padding: 16px; border-radius: var(--radius-md); margin-left: auto; width: 280px;">
+        <div class="totals-box">
           <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
             <span>Total HT :</span><strong id="modal-total-ht">0,00 €</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
             <span>TVA (20%) :</span><strong id="modal-total-tva">0,00 €</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; color: var(--artiflow-navy); border-top: 1px solid var(--border-color); padding-top: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; color: var(--text-total-ttc); border-top: 1px solid var(--border-color); padding-top: 8px;">
             <span>Total TTC :</span><strong id="modal-total-ttc">0,00 €</strong>
           </div>
         </div>
@@ -420,6 +462,99 @@
         <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('devis-modal')">Annuler</button>
           <button type="submit" class="btn btn-terracotta">Enregistrer le devis</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Create Direct Facture (with automatic client registration) -->
+  <div id="facture-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Créer une facture</h3>
+        <button class="close-btn" onclick="closeModal('facture-modal')">&times;</button>
+      </div>
+
+      <form id="facture-form" onsubmit="saveDirectFacture(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="margin-bottom: 0;">Client *</label>
+              <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="toggleNewClientInline('facture')">
+                <i class="ri-user-add-line"></i> + Nouveau client
+              </button>
+            </div>
+            <select id="facture-client-id" class="form-input" required onchange="handleClientDropdownChange('facture')">
+              <!-- Filled dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date d'émission</label>
+            <input type="date" id="facture-date-emission" class="form-input">
+          </div>
+        </div>
+
+        <!-- Inline New Client Box for Facture -->
+        <div id="facture-new-client-box" class="new-client-box" style="display: none;">
+          <div class="new-client-box-title">
+            <i class="ri-user-add-line"></i> Informations du nouveau client (enregistré automatiquement)
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nom ou Raison sociale *</label>
+              <input type="text" id="facture-new-client-nom" class="form-input" placeholder="Ex: SARL Batir ou Jean Dupont">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="facture-new-client-email" class="form-input" placeholder="client@exemple.fr">
+            </div>
+            <div class="form-group">
+              <label>Téléphone</label>
+              <input type="text" id="facture-new-client-tel" class="form-input" placeholder="06 12 34 56 78">
+            </div>
+            <div class="form-group">
+              <label>Adresse complète</label>
+              <input type="text" id="facture-new-client-adresse" class="form-input" placeholder="10 Rue de Paris, 75001 Paris">
+            </div>
+          </div>
+        </div>
+
+        <div style="margin: 20px 0 10px 0;">
+          <h4 style="font-size: 15px; font-weight: 800;">Lignes de la facture</h4>
+        </div>
+
+        <div class="line-header-row">
+          <div>Désignation</div>
+          <div>Qté</div>
+          <div>P.U. HT (€)</div>
+          <div style="text-align: center;">Action</div>
+        </div>
+
+        <div id="facture-lines-container" class="lines-editor-list">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Button situated at the bottom of the last line -->
+        <button type="button" class="btn-add-line-bottom" onclick="addFactureLine()">
+          <i class="ri-add-line"></i> Ajouter une ligne
+        </button>
+
+        <!-- Totals box -->
+        <div class="totals-box">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
+            <span>Total HT :</span><strong id="facture-modal-total-ht">0,00 €</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
+            <span>TVA (20%) :</span><strong id="facture-modal-total-tva">0,00 €</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; color: var(--text-total-ttc); border-top: 1px solid var(--border-color); padding-top: 8px;">
+            <span>Total TTC :</span><strong id="facture-modal-total-ttc">0,00 €</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('facture-modal')">Annuler</button>
+          <button type="submit" class="btn btn-navy">Émettre la facture</button>
         </div>
       </form>
     </div>
@@ -526,6 +661,48 @@
       <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
         <button class="btn btn-outline" onclick="closeModal('share-modal')">Fermer</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: Email Send Modal -->
+  <div id="email-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>📧 Envoyer le devis par email</h3>
+        <button class="close-btn" onclick="closeModal('email-modal')">&times;</button>
+      </div>
+
+      <form id="email-form" onsubmit="sendDevisEmail(event)">
+        <input type="hidden" id="email-devis-id">
+        <input type="hidden" id="email-public-link">
+
+        <div class="form-group">
+          <label>Email du client (destinataire) *</label>
+          <input type="email" id="email-recipient" class="form-input" placeholder="client@exemple.fr" required>
+        </div>
+
+        <div class="form-group">
+          <label>Objet de l'email</label>
+          <input type="text" id="email-subject" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+          <label>Corps du message</label>
+          <textarea id="email-body" class="form-input" rows="7" required></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 8px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="openMailtoClient()" title="Ouvrir avec votre client de messagerie installé">
+            <i class="ri-mail-open-line"></i> Ouvrir mon logiciel de messagerie
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('email-modal')">Annuler</button>
+            <button type="submit" class="btn btn-terracotta" id="btn-submit-email">
+              <i class="ri-send-plane-fill"></i> Envoyer au client
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 
