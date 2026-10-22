@@ -143,6 +143,20 @@ function initSchema() {
   try {
     db.exec(`ALTER TABLE devis ADD COLUMN signature_client TEXT`);
   } catch (_) {}
+
+  // Optimization indexes for sub-millisecond lookups & fast joins
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_clients_artisan ON clients(artisan_id);
+    CREATE INDEX IF NOT EXISTS idx_devis_artisan ON devis(artisan_id);
+    CREATE INDEX IF NOT EXISTS idx_devis_token ON devis(public_token);
+    CREATE INDEX IF NOT EXISTS idx_devis_lignes_devis ON devis_lignes(devis_id);
+    CREATE INDEX IF NOT EXISTS idx_factures_artisan ON factures(artisan_id);
+    CREATE INDEX IF NOT EXISTS idx_factures_token ON factures(public_token);
+    CREATE INDEX IF NOT EXISTS idx_factures_devis ON factures(devis_id);
+    CREATE INDEX IF NOT EXISTS idx_facture_lignes_facture ON facture_lignes(facture_id);
+    CREATE INDEX IF NOT EXISTS idx_paiements_facture ON paiements(facture_id);
+    CREATE INDEX IF NOT EXISTS idx_devis_messages_devis ON devis_messages(devis_id);
+  `);
 }
 
 initSchema();

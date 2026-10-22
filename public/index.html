@@ -7,6 +7,9 @@
   <meta name="description" content="Application web pour artisans indépendants (ex. électricien). Gérant devis, factures sans double saisie et suivi des encaissements en temps réel.">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <link rel="stylesheet" href="/styles.css">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -16,35 +19,35 @@
   <div id="app">
 
     <!-- DESKTOP SIDEBAR (Matches Maquette 1 & 2) -->
-    <aside id="sidebar" class="sidebar" style="display: none;">
+    <aside id="sidebar" class="sidebar" style="display: none;" aria-label="Menu principal">
       <div>
         <div class="brand-header">
-          <img src="/logo.jpg" alt="ArtiFlow Logo" class="brand-logo-img">
+          <img src="/logo.jpg" alt="ArtiFlow Logo" class="brand-logo-img" width="44" height="44" fetchpriority="high">
           <div>
             <div class="brand-title">Arti<span>Flow</span></div>
             <div class="brand-subtitle">Devis & Factures</div>
           </div>
         </div>
 
-        <ul class="nav-list">
+        <ul class="nav-list" role="navigation" aria-label="Navigation principale">
           <li class="nav-item">
             <button class="nav-link active" data-view="dashboard" onclick="switchView('dashboard')">
-              <i class="ri-home-5-line"></i> Tableau de bord
+              <i class="ri-home-5-line" aria-hidden="true"></i> Tableau de bord
             </button>
           </li>
           <li class="nav-item">
             <button class="nav-link" data-view="devis" onclick="switchView('devis')">
-              <i class="ri-file-text-line"></i> Devis
+              <i class="ri-file-text-line" aria-hidden="true"></i> Devis
             </button>
           </li>
           <li class="nav-item">
             <button class="nav-link" data-view="factures" onclick="switchView('factures')">
-              <i class="ri-file-list-3-line"></i> Factures
+              <i class="ri-file-list-3-line" aria-hidden="true"></i> Factures
             </button>
           </li>
           <li class="nav-item">
             <button class="nav-link" data-view="clients" onclick="switchView('clients')">
-              <i class="ri-user-3-line"></i> Clients
+              <i class="ri-user-3-line" aria-hidden="true"></i> Clients
             </button>
           </li>
         </ul>
@@ -52,34 +55,34 @@
 
       <div class="sidebar-user">
         <div class="user-info-box">
-          <div id="user-avatar" class="avatar-circle">AF</div>
+          <div id="user-avatar" class="avatar-circle" aria-hidden="true">AF</div>
           <div style="overflow: hidden;">
             <div id="artisan-company" style="font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Électricité & Co</div>
             <div id="artisan-name" style="font-size: 11px; color: rgba(255,255,255,0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Artisan</div>
           </div>
         </div>
-        <button class="btn-logout" onclick="logout()" title="Déconnexion">
-          <i class="ri-logout-box-r-line"></i>
+        <button class="btn-logout" onclick="logout()" title="Déconnexion" aria-label="Déconnexion de votre compte">
+          <i class="ri-logout-box-r-line" aria-hidden="true"></i>
         </button>
       </div>
     </aside>
 
     <!-- MOBILE BOTTOM NAVIGATION (Matches Mobile Screenshots in Maquette 1 & 2) -->
-    <nav id="bottom-nav" class="bottom-nav" style="display: none;">
-      <button class="bottom-nav-btn active" data-view="dashboard" onclick="switchView('dashboard')">
-        <i class="ri-home-5-line"></i>
+    <nav id="bottom-nav" class="bottom-nav" style="display: none;" aria-label="Navigation mobile">
+      <button class="bottom-nav-btn active" data-view="dashboard" onclick="switchView('dashboard')" aria-label="Tableau de bord">
+        <i class="ri-home-5-line" aria-hidden="true"></i>
         <span>Accueil</span>
       </button>
-      <button class="bottom-nav-btn" data-view="devis" onclick="switchView('devis')">
-        <i class="ri-file-text-line"></i>
+      <button class="bottom-nav-btn" data-view="devis" onclick="switchView('devis')" aria-label="Vos devis">
+        <i class="ri-file-text-line" aria-hidden="true"></i>
         <span>Devis</span>
       </button>
-      <button class="bottom-nav-btn" data-view="factures" onclick="switchView('factures')">
-        <i class="ri-file-list-3-line"></i>
+      <button class="bottom-nav-btn" data-view="factures" onclick="switchView('factures')" aria-label="Vos factures">
+        <i class="ri-file-list-3-line" aria-hidden="true"></i>
         <span>Factures</span>
       </button>
-      <button class="bottom-nav-btn" data-view="clients" onclick="switchView('clients')">
-        <i class="ri-user-3-line"></i>
+      <button class="bottom-nav-btn" data-view="clients" onclick="switchView('clients')" aria-label="Vos clients">
+        <i class="ri-user-3-line" aria-hidden="true"></i>
         <span>Clients</span>
       </button>
     </nav>
@@ -95,11 +98,11 @@
         </div>
 
         <div style="display: flex; gap: 12px; align-items: center;">
-          <button class="btn btn-outline" onclick="toggleTheme()" title="Basculer le thème (Clair/Sombre)">
-            <i class="ri-sun-line" id="theme-icon"></i>
+          <button class="btn btn-outline" onclick="toggleTheme()" title="Basculer le thème (Clair/Sombre)" aria-label="Basculer entre le mode clair et sombre">
+            <i class="ri-sun-line" id="theme-icon" aria-hidden="true"></i>
           </button>
           <button class="btn btn-terracotta" onclick="openNewDevisModal()">
-            <i class="ri-add-line"></i> Nouveau devis
+            <i class="ri-add-line" aria-hidden="true"></i> Nouveau devis
           </button>
         </div>
       </div>
@@ -369,11 +372,11 @@
   </div>
 
   <!-- MODAL 1: Create / Edit Devis -->
-  <div id="devis-modal" class="modal-overlay">
+  <div id="devis-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="devis-modal-title">
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="devis-modal-title">Créer un devis</h3>
-        <button class="close-btn" onclick="closeModal('devis-modal')">&times;</button>
+        <button type="button" class="close-btn" onclick="closeModal('devis-modal')" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
 
       <form id="devis-form" onsubmit="saveDevis(event)">
@@ -382,9 +385,9 @@
         <div class="form-grid">
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <label style="margin-bottom: 0;">Client *</label>
+              <label for="devis-client-id" style="margin-bottom: 0;">Client *</label>
               <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="toggleNewClientInline('devis')">
-                <i class="ri-user-add-line"></i> + Nouveau client
+                <i class="ri-user-add-line" aria-hidden="true"></i> + Nouveau client
               </button>
             </div>
             <select id="devis-client-id" class="form-input" required onchange="handleClientDropdownChange('devis')">
@@ -392,7 +395,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Statut</label>
+            <label for="devis-statut">Statut</label>
             <select id="devis-statut" class="form-input">
               <option value="brouillon">Brouillon</option>
               <option value="envoye">Envoyé</option>
@@ -404,23 +407,23 @@
         <!-- Inline New Client Box (automatic registration) -->
         <div id="devis-new-client-box" class="new-client-box" style="display: none;">
           <div class="new-client-box-title">
-            <i class="ri-user-add-line"></i> Informations du nouveau client (enregistré automatiquement)
+            <i class="ri-user-add-line" aria-hidden="true"></i> Informations du nouveau client (enregistré automatiquement)
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label>Nom ou Raison sociale *</label>
+              <label for="devis-new-client-nom">Nom ou Raison sociale *</label>
               <input type="text" id="devis-new-client-nom" class="form-input" placeholder="Ex: SARL Batir ou Jean Dupont">
             </div>
             <div class="form-group">
-              <label>Email</label>
+              <label for="devis-new-client-email">Email</label>
               <input type="email" id="devis-new-client-email" class="form-input" placeholder="client@exemple.fr">
             </div>
             <div class="form-group">
-              <label>Téléphone</label>
+              <label for="devis-new-client-tel">Téléphone</label>
               <input type="text" id="devis-new-client-tel" class="form-input" placeholder="06 12 34 56 78">
             </div>
             <div class="form-group">
-              <label>Adresse complète</label>
+              <label for="devis-new-client-adresse">Adresse complète</label>
               <input type="text" id="devis-new-client-adresse" class="form-input" placeholder="10 Rue de Paris, 75001 Paris">
             </div>
           </div>
@@ -443,7 +446,7 @@
 
         <!-- Button situated at the bottom of the last line -->
         <button type="button" class="btn-add-line-bottom" onclick="addDevisLine()">
-          <i class="ri-add-line"></i> Ajouter une ligne
+          <i class="ri-add-line" aria-hidden="true"></i> Ajouter une ligne
         </button>
 
         <!-- Totals box -->
@@ -468,20 +471,20 @@
   </div>
 
   <!-- MODAL: Create Direct Facture (with automatic client registration) -->
-  <div id="facture-modal" class="modal-overlay">
+  <div id="facture-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="facture-modal-title">
     <div class="modal-box">
       <div class="modal-header">
-        <h3>Créer une facture</h3>
-        <button class="close-btn" onclick="closeModal('facture-modal')">&times;</button>
+        <h3 id="facture-modal-title">Créer une facture</h3>
+        <button type="button" class="close-btn" onclick="closeModal('facture-modal')" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
 
       <form id="facture-form" onsubmit="saveDirectFacture(event)">
         <div class="form-grid">
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <label style="margin-bottom: 0;">Client *</label>
+              <label for="facture-client-id" style="margin-bottom: 0;">Client *</label>
               <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="toggleNewClientInline('facture')">
-                <i class="ri-user-add-line"></i> + Nouveau client
+                <i class="ri-user-add-line" aria-hidden="true"></i> + Nouveau client
               </button>
             </div>
             <select id="facture-client-id" class="form-input" required onchange="handleClientDropdownChange('facture')">
@@ -489,7 +492,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Date d'émission</label>
+            <label for="facture-date-emission">Date d'émission</label>
             <input type="date" id="facture-date-emission" class="form-input">
           </div>
         </div>
@@ -561,29 +564,29 @@
   </div>
 
   <!-- MODAL 2: Create / Edit Client -->
-  <div id="client-modal" class="modal-overlay">
+  <div id="client-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="client-modal-title">
     <div class="modal-box" style="max-width: 480px;">
       <div class="modal-header">
         <h3 id="client-modal-title">Fiche client</h3>
-        <button class="close-btn" onclick="closeModal('client-modal')">&times;</button>
+        <button type="button" class="close-btn" onclick="closeModal('client-modal')" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
 
       <form id="client-form" onsubmit="saveClient(event)">
         <input type="hidden" id="client-id">
         <div class="form-group">
-          <label>Nom ou Raison sociale *</label>
+          <label for="client-nom">Nom ou Raison sociale *</label>
           <input type="text" id="client-nom" class="form-input" placeholder="SARL Bâtir Plus" required>
         </div>
         <div class="form-group">
-          <label>Email</label>
+          <label for="client-email">Email</label>
           <input type="email" id="client-email" class="form-input" placeholder="contact@batirplus.fr">
         </div>
         <div class="form-group">
-          <label>Téléphone</label>
+          <label for="client-phone">Téléphone</label>
           <input type="text" id="client-phone" class="form-input" placeholder="06 12 34 56 78">
         </div>
         <div class="form-group">
-          <label>Adresse complète</label>
+          <label for="client-adresse">Adresse complète</label>
           <textarea id="client-adresse" class="form-input" rows="3" placeholder="10 Rue des Artisans, 75001 Paris"></textarea>
         </div>
 
@@ -596,11 +599,11 @@
   </div>
 
   <!-- MODAL 3: Payment / Acompte Registration (Matches Maquette 1 Screenshot 4) -->
-  <div id="payment-modal" class="modal-overlay">
+  <div id="payment-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
     <div class="modal-box" style="max-width: 460px;">
       <div class="modal-header">
-        <h3>+ Ajouter un paiement</h3>
-        <button class="close-btn" onclick="closeModal('payment-modal')">&times;</button>
+        <h3 id="payment-modal-title">+ Ajouter un paiement</h3>
+        <button type="button" class="close-btn" onclick="closeModal('payment-modal')" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
 
       <form id="payment-form" onsubmit="savePayment(event)">
@@ -612,12 +615,12 @@
         </div>
 
         <div class="form-group">
-          <label>Montant du règlement (€) *</label>
+          <label for="payment-amount">Montant du règlement (€) *</label>
           <input type="number" step="0.01" id="payment-amount" class="form-input" placeholder="150.00" required>
         </div>
 
         <div class="form-group">
-          <label>Mode de règlement</label>
+          <label for="payment-mode">Mode de règlement</label>
           <select id="payment-mode" class="form-input">
             <option value="virement" selected>Virement bancaire</option>
             <option value="carte">Carte bancaire</option>
@@ -627,7 +630,7 @@
         </div>
 
         <div class="form-group">
-          <label>Notes / Référence</label>
+          <label for="payment-notes">Notes / Référence</label>
           <input type="text" id="payment-notes" class="form-input" placeholder="Acompte 30%">
         </div>
 
@@ -640,11 +643,11 @@
   </div>
 
   <!-- MODAL 4: Share Public Link Modal -->
-  <div id="share-modal" class="modal-overlay">
+  <div id="share-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
     <div class="modal-box" style="max-width: 500px;">
       <div class="modal-header">
-        <h3>🔗 Lien public de consultation</h3>
-        <button class="close-btn" onclick="closeModal('share-modal')">&times;</button>
+        <h3 id="share-modal-title">🔗 Lien public de consultation</h3>
+        <button type="button" class="close-btn" onclick="closeModal('share-modal')" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
 
       <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
@@ -652,24 +655,25 @@
       </p>
 
       <div class="form-group">
+        <label for="share-link-input" class="visually-hidden" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">Lien public</label>
         <div style="display: flex; gap: 8px;">
           <input type="text" id="share-link-input" class="form-input" readonly>
-          <button class="btn btn-terracotta" onclick="copyShareLink()">Copier</button>
+          <button type="button" class="btn btn-terracotta" onclick="copyShareLink()">Copier</button>
         </div>
       </div>
 
       <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-        <button class="btn btn-outline" onclick="closeModal('share-modal')">Fermer</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal('share-modal')">Fermer</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL 5: Email Send Modal -->
-  <div id="email-modal" class="modal-overlay">
+  <div id="email-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="email-modal-title">
     <div class="modal-box" style="max-width: 520px;">
       <div class="modal-header">
-        <h3>📧 Envoyer le devis par email</h3>
-        <button class="close-btn" onclick="closeModal('email-modal')">&times;</button>
+        <h3 id="email-modal-title">📧 Envoyer le devis par email</h3>
+        <button type="button" class="close-btn" onclick="closeModal('email-modal')" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
 
       <form id="email-form" onsubmit="sendDevisEmail(event)">
@@ -677,17 +681,17 @@
         <input type="hidden" id="email-public-link">
 
         <div class="form-group">
-          <label>Email du client (destinataire) *</label>
+          <label for="email-recipient">Email du client (destinataire) *</label>
           <input type="email" id="email-recipient" class="form-input" placeholder="client@exemple.fr" required>
         </div>
 
         <div class="form-group">
-          <label>Objet de l'email</label>
+          <label for="email-subject">Objet de l'email</label>
           <input type="text" id="email-subject" class="form-input" required>
         </div>
 
         <div class="form-group">
-          <label>Corps du message</label>
+          <label for="email-body">Corps du message</label>
           <textarea id="email-body" class="form-input" rows="7" required></textarea>
         </div>
 

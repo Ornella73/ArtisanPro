@@ -25,8 +25,26 @@ function formatDate(dateVal) {
  * if an error occurs during buildFn.
  */
 function sendPDF(doc, filename, res, buildFn) {
-  const chunks = [];
+  let chunks = [];
   let errorOccurred = false;
+
+  const cleanup = () => {
+    chunks = [];
+    doc.removeAllListeners('data');
+    doc.removeAllListeners('end');
+    doc.removeAllListeners('error');
+    if (typeof doc.destroy === 'function') {
+      try { doc.destroy(); } catch (_) {}
+    }
+  };
+
+  const onClose = () => {
+    if (!res.writableEnded) {
+      errorOccurred = true;
+      cleanup();
+    }
+  };
+  res.on('close', onClose);
 
   doc.on('data', (chunk) => {
     if (!errorOccurred) {
@@ -35,9 +53,14 @@ function sendPDF(doc, filename, res, buildFn) {
   });
 
   doc.on('end', () => {
-    if (errorOccurred) return;
+    res.removeListener('close', onClose);
+    if (errorOccurred) {
+      cleanup();
+      return;
+    }
     try {
       const pdfBuffer = Buffer.concat(chunks);
+      chunks = []; // release chunk buffers immediately after concatenation
       if (!res.headersSent) {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
@@ -46,6 +69,7 @@ function sendPDF(doc, filename, res, buildFn) {
       }
     } catch (err) {
       console.error('PDF stream flush error:', err);
+      cleanup();
       if (!res.headersSent) {
         res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: err.message });
       }
@@ -55,8 +79,8 @@ function sendPDF(doc, filename, res, buildFn) {
   doc.on('error', (err) => {
     console.error('PDFKit internal error:', err);
     errorOccurred = true;
-    doc.removeAllListeners('data');
-    doc.removeAllListeners('end');
+    res.removeListener('close', onClose);
+    cleanup();
     if (!res.headersSent) {
       res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: err.message });
     }
@@ -68,8 +92,8 @@ function sendPDF(doc, filename, res, buildFn) {
   } catch (err) {
     console.error('PDF build error:', err);
     errorOccurred = true;
-    doc.removeAllListeners('data');
-    doc.removeAllListeners('end');
+    res.removeListener('close', onClose);
+    cleanup();
     if (!res.headersSent) {
       res.status(500).json({ error: 'Erreur lors de la génération du PDF.', details: err.message });
     }
